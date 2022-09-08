@@ -1,7 +1,9 @@
 package awsserviceproxy
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -35,10 +37,7 @@ func Start(env string) {
 	wg.Add(1)
 	tunnel := NewTunnelConfiguration(env)
 	port := setupTunnel(tunnel)
-	setupGlobalRequestHandler(ServiceConfiguration{
-		ServiceName: "a",
-		Port:        1,
-	}, fmt.Sprintf("http://localhost:%d", port))
+	setupGlobalRequestHandler(fmt.Sprintf("http://localhost:%d", port))
 	wg.Wait()
 }
 
@@ -68,13 +67,14 @@ func setupTunnel(tunnelConfig TunnelConfiguration) int {
 	return tunnel.Local.Port
 }
 
-func setupGlobalRequestHandler(conf ServiceConfiguration, to string) {
+func setupGlobalRequestHandler(to string) {
+
 	go func() {
-		logger := log.Default()
+
 		origin, _ := url.Parse(to)
 
 		director := func(req *http.Request) {
-			host := strings.Replace(req.Host, "tfmc", "service", 1)
+			host := req.Host
 			req.Header.Add("host", host)
 			req.Host = host
 			req.URL.Scheme = "http"
@@ -82,12 +82,15 @@ func setupGlobalRequestHandler(conf ServiceConfiguration, to string) {
 		}
 
 		proxy := &httputil.ReverseProxy{Director: director}
+		proxy.Transport = &transport{http.DefaultTransport}
 		server := http.NewServeMux()
 
 		server.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			logger.Printf("%s <- %s %s %s\n", conf.ServiceName, r.Method, r.URL.Path, r.URL.RawQuery)
+			body, _ := io.ReadAll(r.Body)
+			r.Body = io.NopCloser(bytes.NewBuffer(body))
+
 			defer r.Body.Close()
-			fmt.Println("ReqUri" + r.RequestURI)
+
 			if r.Host == "app.service" {
 				root := "static"
 				switch r.Method {
@@ -104,11 +107,47 @@ func setupGlobalRequestHandler(conf ServiceConfiguration, to string) {
 
 		})
 
-		logger.Printf("Starting server at port: %d\n", 80)
+		// logger.Printf("Starting server at port: %d\n", 80)
 		if err := http.ListenAndServe(fmt.Sprintf(":%d", 80), server); err != nil {
 			log.Fatal("Failed. Try to execute `lsof -t -i tcp:80 | xargs kill`.")
 		}
 
-		logger.Printf("Started: %d\n", 80)
+		log.Printf("Started: %d\n", 80)
 	}()
+
+}
+
+type transport struct {
+	http.RoundTripper
+}
+
+func (t *transport) RoundTrip(req *http.Request) (resp *http.Response, err error) {
+	resp, _ = t.RoundTripper.RoundTrip(req)
+	reqBody, respBody := "", ""
+	if req.Body != nil {
+		reqBody, _ := io.ReadAll(req.Body)
+		req.Body = io.NopCloser(bytes.NewBuffer(reqBody))
+	}
+	if resp.Body != nil {
+		respBody, _ := io.ReadAll(resp.Body)
+		resp.Body = io.NopCloser(bytes.NewBuffer(respBody))
+	}
+
+	sugar, _ := newProductionZaplogger(req.Host)
+	message := fmt.Sprintf("%s %s %d %s %s", req.Host, req.Method, resp.StatusCode, req.URL.Path, req.URL.RawQuery)
+	sugar.Infow(
+		message,
+		"service", req.Host,
+		"method", req.Method,
+		"path", req.URL.Path,
+		"query", req.URL.RawQuery,
+		"requestBody", string(reqBody),
+		"responseBody", string(respBody),
+		"status", resp.StatusCode,
+		"requestHeaders", req.Header,
+		"responseHeaders", resp.Header,
+	)
+	log.Println(message)
+
+	return resp, nil
 }
