@@ -1,4 +1,4 @@
-# AWS Web proxy aka AWP
+# AWP = AWS Web Proxy
 
 This application can be used to setup your local environment and expose you services that are accessible via bastion ssh tunnel.
 
@@ -39,3 +39,27 @@ All services are available locally on port 80 at `<servicename>.service` eg. htt
 - `./awp setup` - creates aws profile to use `hosts` command and updates bastion keys from 1password
 - `./awp hosts` - requires sudo, updates `/etc/hosts` with service list from aws
 - `./awp update-keys` - updates keys to bastion from 1password
+
+# Development
+
+## Backend
+
+Execute `go run app.go [command]` and GL.
+
+## Frontend (WIP)
+
+1. start backend by `go run app.go start` or `awp start`
+2. start frontend:
+
+```
+cd internal/frontend
+npm install
+npm start
+```
+
+# Release
+
+1. Build by executing `./build.sh`
+2. Manually create tag vX.Y.Z: `git tag v1.2.3`
+3. Push `git push --tags`
+4. Create release through github website and attach `bin/awp` file
