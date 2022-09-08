@@ -9,10 +9,14 @@ This application can be used to setup your local environment and expose you serv
 
 # How to use it
 
+KILL ZSCALER!
+
 0. Setup cli 1password: `op account add --address team-dsi.1password.com --email your.email@technipfmc.com`
 1. If you already had it setup just execute `eval $(op signin)`
 2. Downlaod file from release
-3. Execute: `./aws-service-proxy setup`
-4. Execute: `sudo ./aws-service-proxy hosts`
-5. Run application by `./aws-service-proxy start` or `./aws-service-proxy start dev|demo|prod`
-6. All services are available locally on port 80 at `<servicename>.service`
+3. Execute: `chmod +x ./aws-service-proxy`
+4. Open containing directory in finder and Open with terminal
+5. Execute: `./aws-service-proxy setup`
+6. Execute: `sudo ./aws-service-proxy hosts`
+7. Run application by `./aws-service-proxy start` or `./aws-service-proxy start dev|demo|prod`
+8. All services are available locally on port 80 at `<servicename>.service` eg. http://material-match.service
