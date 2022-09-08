@@ -31,9 +31,10 @@ func zapCore(c zapcore.Core, service string) zapcore.Core {
 		MaxBackups: 30,
 		MaxAge:     28, // days
 	})
-
+	conf := zap.NewProductionEncoderConfig()
+	conf.EncodeTime = zapcore.ISO8601TimeEncoder
 	core := zapcore.NewCore(
-		zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig()),
+		zapcore.NewJSONEncoder(conf),
 		w,
 		zap.DebugLevel,
 	)

@@ -14,7 +14,7 @@ func main() {
 	switch cmd {
 	case "hosts":
 		{
-			awsserviceproxy.Setup()
+			awsserviceproxy.SetupHosts()
 		}
 	case "setup":
 		{
@@ -34,6 +34,7 @@ func main() {
 			if env != "dev" && env != "demo" && env != "prod" {
 				panic("Do not recognize that environment: " + env)
 			}
+			awsserviceproxy.StartWebServer()
 			awsserviceproxy.Start(env)
 		}
 	}

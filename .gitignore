@@ -1,2 +1,4 @@
 *.pem
 logs
+config.json
+main

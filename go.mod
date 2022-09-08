@@ -21,6 +21,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.16.11 // indirect
 	github.com/aws/smithy-go v1.12.0 // indirect
 	github.com/devfacet/gocmd/v3 v3.1.2 // indirect
+	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/txn2/txeh v1.3.0 // indirect
 	go.uber.org/atomic v1.10.0 // indirect

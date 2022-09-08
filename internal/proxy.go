@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"path"
 	"strings"
 	"sync"
 	"time"
@@ -68,7 +67,6 @@ func setupTunnel(tunnelConfig TunnelConfiguration) int {
 }
 
 func setupGlobalRequestHandler(to string) {
-
 	go func() {
 
 		origin, _ := url.Parse(to)
@@ -86,25 +84,7 @@ func setupGlobalRequestHandler(to string) {
 		server := http.NewServeMux()
 
 		server.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			body, _ := io.ReadAll(r.Body)
-			r.Body = io.NopCloser(bytes.NewBuffer(body))
-
-			defer r.Body.Close()
-
-			if r.Host == "app.service" {
-				root := "static"
-				switch r.Method {
-				case "GET":
-					if r.URL.Path == "" || r.URL.Path == "/" {
-						http.ServeFile(w, r, path.Join(root, "index.html"))
-					} else {
-						http.ServeFile(w, r, path.Join(root, r.URL.Path))
-					}
-				}
-			} else {
-				proxy.ServeHTTP(w, r)
-			}
-
+			proxy.ServeHTTP(w, r)
 		})
 
 		// logger.Printf("Starting server at port: %d\n", 80)

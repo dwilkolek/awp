@@ -17,7 +17,7 @@ type ShortRunConfiguration struct {
 	Services []ServiceConfiguration
 }
 
-func Setup() {
+func SetupHosts() {
 	hosts, err := txeh.NewHostsDefault()
 	if err != nil {
 		panic(err)
@@ -25,13 +25,17 @@ func Setup() {
 	client := getEcsClient()
 	clusters, _ := getEcsClusterMap(client)
 	services := getEcsServices(client, clusters["dev"])
-	hosts.AddHost("127.0.0.1", "app.service")
+
+	knownHosts := []string{}
 	for service := range services {
 		hosts.AddHost("127.0.0.1", service+".service")
+		knownHosts = append(knownHosts, service+".service")
 	}
 
-	hfData := hosts.RenderHostsFile()
-	fmt.Println(hfData)
+	AWPConfig.Hosts = knownHosts
+	saveAWPConfig()
+	// hfData := hosts.RenderHostsFile()
+	// fmt.Println(hfData)
 	err = hosts.Save()
 	if err != nil {
 		panic(err)
