@@ -11,13 +11,19 @@ This application can be used to setup your local environment and expose you serv
 
 KILL ZSCALER!
 
-0. Setup cli 1password: `op account add --address team-dsi.1password.com --email your.email@technipfmc.com`
-1. If you already had it setup just execute `eval $(op signin)`
-2. Downlaod file from release
-3. Execute: `chmod +x ./awp`
-4. Open containing directory in finder and Open with terminal
-5. Execute: `./awp setup`
-6. Execute: `sudo ./awp hosts`
+1. Downlaod file from `awp` from [releases](https://github.com/tfmcdigital/aws-web-proxy/releases/latest)
+2. Create `awp` directory in your home directory: `mkdir -p ~/awp && cp ~/Downloads/awp ~/awp/awp`
+3. Setup cli 1password: `op account add --address team-dsi.1password.com --email your.email@technipfmc.com`
+4. If you already had it setup just execute `eval $(op signin)`
+5. Go to AWP directory: `cd ~/awp`
+6. Execute: `chmod +x awp`
+7. Open containing directory in finder `open ~/awp`, ctrl+click on file and select Open with terminal
+8. Execute: `awp setup`
+9. Execute: `sudo awp hosts`
+
+Optionally add alias and exeucte it from anywhere by `awp [command]`:
+
+- `echo "alias awp=\"~/awp/awp\"" >> ~/.zshrc && source ~/.zshrc`
 
 # How to start
 
