@@ -81,11 +81,12 @@ func (op *OpClient) getAwsConfigNote(itemId string) string {
 }
 
 func FileName(env string) string {
-	return fmt.Sprintf("%s-bastion-rsa.pem", env)
+	homedir, _ := os.UserHomeDir()
+	return fmt.Sprintf("%s/.ssh/%s-bastion-rsa.pem", homedir, env)
 }
 
 func storeKey(env string, data []byte) {
-	err := ioutil.WriteFile(fmt.Sprintf("%s-bastion-rsa.pem", env), data, 0644)
+	err := ioutil.WriteFile(FileName(env), data, 0644)
 	if err != nil {
 		panic(err)
 	}
