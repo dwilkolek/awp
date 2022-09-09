@@ -1,4 +1,4 @@
-package awsserviceproxy
+package awswebproxy
 
 import (
 	"fmt"

@@ -1,9 +1,11 @@
-package awsserviceproxy
+package awswebproxy
 
 import (
 	"encoding/json"
 	"io/ioutil"
 	"log"
+	"os"
+	"path/filepath"
 )
 
 type aWPConfig struct {
@@ -15,11 +17,25 @@ var AWPConfig aWPConfig
 
 func saveAWPConfig() {
 	file, _ := json.MarshalIndent(AWPConfig, "", " ")
-	_ = ioutil.WriteFile("./config.json", file, 0644)
+	_ = ioutil.WriteFile(configPath(), file, 0644)
+}
+
+func configPath() string {
+	if Version == "development" {
+		return "./config.json"
+	} else {
+		ex, err := os.Executable()
+		if err != nil {
+			panic(err)
+		}
+		exePath := filepath.Dir(ex)
+		return exePath + "/config.json"
+	}
 }
 
 func init() {
-	content, err := ioutil.ReadFile("./config.json")
+
+	content, err := ioutil.ReadFile(configPath())
 	if err != nil {
 		AWPConfig = aWPConfig{
 			Version: 1,

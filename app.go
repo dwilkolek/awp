@@ -4,10 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	awsserviceproxy "github.com/tfmcdigital/aws-web-proxy/internal"
+	awswebproxy "github.com/tfmcdigital/aws-web-proxy/internal"
 )
-
-var version string
 
 func main() {
 	cmd := ""
@@ -17,16 +15,16 @@ func main() {
 	switch cmd {
 	case "hosts":
 		{
-			awsserviceproxy.SetupHosts()
+			awswebproxy.SetupHosts()
 		}
 	case "setup":
 		{
-			awsserviceproxy.SetupAwsProfile()
-			awsserviceproxy.UpdateBastionKeys()
+			awswebproxy.SetupAwsProfile()
+			awswebproxy.UpdateBastionKeys()
 		}
 	case "update-keys":
 		{
-			awsserviceproxy.UpdateBastionKeys()
+			awswebproxy.UpdateBastionKeys()
 		}
 	case "start":
 		{
@@ -37,12 +35,12 @@ func main() {
 			if env != "dev" && env != "demo" && env != "prod" {
 				panic("Do not recognize that environment: " + env)
 			}
-			awsserviceproxy.StartWebServer()
-			awsserviceproxy.Start(env)
+			awswebproxy.StartWebServer()
+			awswebproxy.Start(env)
 		}
 	case "version":
 		{
-			fmt.Println("Version " + version)
+			fmt.Println("Version " + awswebproxy.Version)
 		}
 	}
 }
