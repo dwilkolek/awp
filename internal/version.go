@@ -5,11 +5,15 @@ import (
 	"path/filepath"
 )
 
-var Version string
+var Version string = "development"
 
 func baseAwpPath() string {
 	if Version == "development" {
-		return "."
+		path, err := os.Getwd()
+		if err != nil {
+			panic(err)
+		}
+		return path
 	} else {
 		ex, err := os.Executable()
 		if err != nil {

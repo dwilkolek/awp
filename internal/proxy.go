@@ -1,9 +1,7 @@
 package awswebproxy
 
 import (
-	"bytes"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -108,15 +106,9 @@ type transport struct {
 
 func (t *transport) RoundTrip(req *http.Request) (resp *http.Response, err error) {
 	resp, _ = t.RoundTripper.RoundTrip(req)
-	reqBody, respBody := "", ""
-	if req.Body != nil {
-		reqBody, _ := io.ReadAll(req.Body)
-		req.Body = io.NopCloser(bytes.NewBuffer(reqBody))
-	}
-	if resp.Body != nil {
-		respBody, _ := io.ReadAll(resp.Body)
-		resp.Body = io.NopCloser(bytes.NewBuffer(respBody))
-	}
+
+	reqBody, _ := httputil.DumpRequest(req, true)
+	respBody, _ := httputil.DumpResponse(resp, true)
 
 	sugar, _ := newProductionZaplogger(req.Host)
 	message := fmt.Sprintf("%s %s %d %s %s", req.Host, req.Method, resp.StatusCode, req.URL.Path, req.URL.RawQuery)
@@ -126,8 +118,8 @@ func (t *transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 		"method", req.Method,
 		"path", req.URL.Path,
 		"query", req.URL.RawQuery,
-		"requestBody", string(reqBody),
-		"responseBody", string(respBody),
+		"request", string(reqBody),
+		"response", string(respBody),
 		"status", resp.StatusCode,
 		"requestHeaders", req.Header,
 		"responseHeaders", resp.Header,
