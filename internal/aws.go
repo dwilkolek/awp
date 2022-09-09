@@ -27,6 +27,9 @@ func SetupHosts() {
 	services := getEcsServices(client, clusters["dev"])
 
 	knownHosts := []string{}
+
+	hosts.AddHost("127.0.0.1", "awp")
+
 	for service := range services {
 		hosts.AddHost("127.0.0.1", service+".service")
 		knownHosts = append(knownHosts, service+".service")

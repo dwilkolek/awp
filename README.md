@@ -44,6 +44,14 @@ All services are available locally on port 80 at `<servicename>.service` eg. htt
 
 ## Backend
 
+Build frontend
+
+```
+cd internal/frontend
+npm install
+npm build
+```
+
 Execute `go run app.go [command]` and GL.
 
 ## Frontend (WIP)

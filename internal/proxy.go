@@ -70,13 +70,18 @@ func setupGlobalRequestHandler(to string) {
 	go func() {
 
 		origin, _ := url.Parse(to)
-
 		director := func(req *http.Request) {
 			host := req.Host
 			req.Header.Add("host", host)
 			req.Host = host
 			req.URL.Scheme = "http"
-			req.URL.Host = origin.Host
+			if host == "awp" {
+				originAwp, _ := url.Parse("http://localhost:2137")
+				req.URL.Host = originAwp.Host
+			} else {
+				req.URL.Host = origin.Host
+			}
+
 		}
 
 		proxy := &httputil.ReverseProxy{Director: director}

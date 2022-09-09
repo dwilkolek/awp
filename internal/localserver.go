@@ -47,7 +47,7 @@ func StartWebServer() {
 		}).Methods("GET")
 
 		rtr.PathPrefix("/").HandlerFunc(handleStatic)
-		log.Println("Access UI: http://localhost:2137")
+		log.Println("Access UI: http://awp and http://localhost:2137")
 		if err := http.ListenAndServe("localhost:2137", rtr); err != nil {
 			log.Fatal("Failed. Try to execute `lsof -t -i tcp:2137 | xargs kill`.")
 		}
