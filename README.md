@@ -39,6 +39,7 @@ All services are available locally on port 80 at `<servicename>.service` eg. htt
 - `./awp setup` - creates aws profile to use `hosts` command and updates bastion keys from 1password
 - `./awp hosts` - requires sudo, updates `/etc/hosts` with service list from aws
 - `./awp update-keys` - updates keys to bastion from 1password
+- `./awp version` - prints application version
 
 # Development
 
@@ -67,7 +68,6 @@ npm start
 
 # Release
 
-1. Build by executing `./build.sh`
-2. Manually create tag vX.Y.Z: `git tag v1.2.3`
-3. Push `git push --tags`
-4. Create release through github website and attach `bin/awp` file
+1. Build by executing `./build.sh v1.2.3`
+2. Push `git push --tags`
+3. Create release through github website and attach `bin/awp` file

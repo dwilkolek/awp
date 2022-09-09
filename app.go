@@ -1,10 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
-	awsserviceproxy "github.com/tfmcdigital/aws-service-proxy/internal"
+	awsserviceproxy "github.com/tfmcdigital/aws-web-proxy/internal"
 )
+
+var version string
 
 func main() {
 	cmd := ""
@@ -36,6 +39,10 @@ func main() {
 			}
 			awsserviceproxy.StartWebServer()
 			awsserviceproxy.Start(env)
+		}
+	case "version":
+		{
+			fmt.Println("Version " + version)
 		}
 	}
 }
