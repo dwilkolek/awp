@@ -34,8 +34,7 @@ func StartWebServer() {
 		rtr.HandleFunc("/api/logs/{service:[a-z\\.\\-]+}", func(w http.ResponseWriter, r *http.Request) {
 			params := mux.Vars(r)
 			service := params["service"]
-			pwd, _ := os.Getwd()
-			logfile, err := ioutil.ReadFile(fmt.Sprintf("%s/logs/%s.log", pwd, service))
+			logfile, err := ioutil.ReadFile(fmt.Sprintf("%s/logs/%s.log", baseAwpPath(), service))
 			w.Header().Set("Content-Type", "application/json")
 			if err != nil {
 				w.WriteHeader(http.StatusNotFound)

@@ -26,7 +26,7 @@ func zapCore(c zapcore.Core, service string) zapcore.Core {
 	// lumberjack.Logger is already safe for concurrent use, so we don't need to
 	// lock it.
 	w := zapcore.AddSync(&lumberjack.Logger{
-		Filename:   fmt.Sprintf("./logs/%s.log", service),
+		Filename:   fmt.Sprintf("%s/%s.log", baseAwpPath(), service),
 		MaxSize:    50, // megabytes
 		MaxBackups: 30,
 		MaxAge:     28, // days

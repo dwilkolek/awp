@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"log"
-	"os"
-	"path/filepath"
 )
 
 type aWPConfig struct {
@@ -21,16 +19,7 @@ func saveAWPConfig() {
 }
 
 func configPath() string {
-	if Version == "development" {
-		return "./config.json"
-	} else {
-		ex, err := os.Executable()
-		if err != nil {
-			panic(err)
-		}
-		exePath := filepath.Dir(ex)
-		return exePath + "/config.json"
-	}
+	return baseAwpPath() + "/config.json"
 }
 
 func init() {
