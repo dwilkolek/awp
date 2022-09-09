@@ -67,7 +67,7 @@ npm start
 
 # Release
 
-1. Build by executing `./build.sh`
+1. Build by executing `./build.sh v1.2.3`
 2. Manually create tag vX.Y.Z: `git tag v1.2.3`
 3. Push `git push --tags`
 4. Create release through github website and attach `bin/awp` file

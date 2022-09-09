@@ -1,10 +1,16 @@
 package main
 
 import (
+	"fmt"
+	"log"
 	"os"
+	"runtime"
 
-	awsserviceproxy "github.com/tfmcdigital/aws-service-proxy/internal"
+	"github.com/creativeprojects/go-selfupdate"
+	awsserviceproxy "github.com/tfmcdigital/aws-web-proxy/internal"
 )
+
+var version string
 
 func main() {
 	cmd := ""
@@ -36,6 +42,37 @@ func main() {
 			}
 			awsserviceproxy.StartWebServer()
 			awsserviceproxy.Start(env)
+		}
+	case "version":
+		{
+			fmt.Println("Version " + version)
+		}
+	case "update":
+		{
+			latest, found, err := selfupdate.DetectLatest("creativeprojects/resticprofile")
+			if err != nil {
+				fmt.Printf("error occurred while detecting version: %v", err)
+				return
+			}
+			if !found {
+				fmt.Printf("latest version for %s/%s could not be found from github repository", runtime.GOOS, runtime.GOARCH)
+			}
+
+			if latest.LessOrEqual(version) {
+				log.Printf("Current version (%s) is the latest", version)
+				return
+			}
+
+			exe, err := os.Executable()
+			if err != nil {
+				fmt.Printf("could not locate executable path")
+				return
+			}
+			if err := selfupdate.UpdateTo(latest.AssetURL, latest.AssetName, exe); err != nil {
+				fmt.Printf("error occurred while updating binary: %v", err)
+				return
+			}
+			log.Printf("Successfully updated to version %s", latest.Version())
 		}
 	}
 }
