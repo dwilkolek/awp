@@ -3,3 +3,4 @@ logs
 config.json
 main
 bin
+socket-test-app

@@ -7,7 +7,7 @@ import (
 
 var Version string = "development"
 
-func baseAwpPath() string {
+func BaseAwpPath() string {
 	if Version == "development" {
 		path, err := os.Getwd()
 		if err != nil {

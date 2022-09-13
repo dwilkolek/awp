@@ -1,4 +1,4 @@
-package awswebproxy
+package localserver
 
 import (
 	"fmt"
@@ -11,36 +11,27 @@ import (
 	"time"
 
 	"github.com/elliotchance/sshtunnel"
+	awswebproxy "github.com/tfmcdigital/aws-web-proxy/internal"
 )
 
-type RunConfiguration struct {
-	Tunnel   TunnelConfiguration
-	Services []ServiceConfiguration
-}
-
-type TunnelConfiguration struct {
-	UserAndHost         string
-	CertificateLocation string
-	Destination         string
-}
-
-type ServiceConfiguration struct {
-	ServiceName string
-	Port        int
-}
+var logChan chan LogEntry = make(chan LogEntry)
 
 func Start(env string) {
 	var wg sync.WaitGroup
 	wg.Add(1)
-	tunnel := NewTunnelConfiguration(env)
+
+	tunnel := newTunnelConfiguration(env)
 	port := setupTunnel(tunnel)
 	setupGlobalRequestHandler(fmt.Sprintf("http://localhost:%d", port))
+
+	startLocalWebServer()
 	wg.Wait()
+
 }
 
-func NewTunnelConfiguration(env string) TunnelConfiguration {
+func newTunnelConfiguration(env string) TunnelConfiguration {
 	return TunnelConfiguration{
-		CertificateLocation: FileName(env),
+		CertificateLocation: awswebproxy.FilePathToBastionKey(env),
 		UserAndHost:         fmt.Sprintf("ec2-user@bastion.%sservices.technipfmc.com", strings.ReplaceAll(env+".", "prod.", "")),
 		Destination:         "service.service:80",
 	}
@@ -63,7 +54,6 @@ func setupTunnel(tunnelConfig TunnelConfiguration) int {
 
 	return tunnel.Local.Port
 }
-
 func setupGlobalRequestHandler(to string) {
 	go func() {
 
@@ -111,20 +101,45 @@ func (t *transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 	respBody, _ := httputil.DumpResponse(resp, true)
 
 	sugar, _ := newProductionZaplogger(req.Host)
-	message := fmt.Sprintf("%s %s %d %s %s", req.Host, req.Method, resp.StatusCode, req.URL.Path, req.URL.RawQuery)
-	sugar.Infow(
-		message,
-		"service", req.Host,
-		"method", req.Method,
-		"path", req.URL.Path,
-		"query", req.URL.RawQuery,
-		"request", string(reqBody),
-		"response", string(respBody),
-		"status", resp.StatusCode,
-		"requestHeaders", req.Header,
-		"responseHeaders", resp.Header,
-	)
-	log.Println(message)
 
+	logEntry := LogEntry{
+		Message:         fmt.Sprintf("%s %s %d %s %s", req.Host, req.Method, resp.StatusCode, req.URL.Path, req.URL.RawQuery),
+		Service:         req.Host,
+		Method:          req.Method,
+		Path:            req.URL.Path,
+		Query:           req.URL.RawQuery,
+		Request:         string(reqBody),
+		Response:        string(respBody),
+		Status:          resp.StatusCode,
+		RequestHeaders:  req.Header,
+		ResponseHeaders: resp.Header,
+	}
+	sugar.Infow(
+		logEntry.Message,
+		"service", logEntry.Service,
+		"method", logEntry.Method,
+		"path", logEntry.Path,
+		"query", logEntry.Query,
+		"request", logEntry.Request,
+		"response", logEntry.Response,
+		"status", logEntry.Status,
+		"requestHeaders", logEntry.RequestHeaders,
+		"responseHeaders", logEntry.ResponseHeaders,
+	)
+	log.Println(logEntry.Message)
+	logChan <- logEntry
 	return resp, nil
+}
+
+type LogEntry struct {
+	Message         string              `json:"message"`
+	Service         string              `json:"service"`
+	Method          string              `json:"method"`
+	Path            string              `json:"path"`
+	Query           string              `json:"query"`
+	Request         string              `json:"request"`
+	Response        string              `json:"response"`
+	Status          int                 `json:"status"`
+	RequestHeaders  map[string][]string `json:"requestHeaders"`
+	ResponseHeaders map[string][]string `json:"responseHeaders"`
 }

@@ -1,8 +1,9 @@
-package awswebproxy
+package localserver
 
 import (
 	"fmt"
 
+	awswebproxy "github.com/tfmcdigital/aws-web-proxy/internal"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -26,7 +27,7 @@ func zapCore(c zapcore.Core, service string) zapcore.Core {
 	// lumberjack.Logger is already safe for concurrent use, so we don't need to
 	// lock it.
 	w := zapcore.AddSync(&lumberjack.Logger{
-		Filename:   fmt.Sprintf("%s/logs/%s.log", baseAwpPath(), service),
+		Filename:   fmt.Sprintf("%s/logs/%s.log", awswebproxy.BaseAwpPath(), service),
 		MaxSize:    50, // megabytes
 		MaxBackups: 30,
 		MaxAge:     28, // days
@@ -41,13 +42,4 @@ func zapCore(c zapcore.Core, service string) zapcore.Core {
 	cores := zapcore.NewTee(c, core)
 
 	return cores
-}
-
-func remove[T comparable](l []T, item T) []T {
-	for i, other := range l {
-		if other == item {
-			return append(l[:i], l[i+1:]...)
-		}
-	}
-	return l
 }
