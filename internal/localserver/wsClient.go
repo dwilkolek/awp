@@ -3,6 +3,7 @@ package localserver
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -76,7 +77,6 @@ func (c *Client) readPump() {
 		if strings.HasPrefix(string(message), "del:") {
 			c.serviceSubscriptions[strings.Replace(string(message), "del:", "", -1)] = false
 		}
-		// c.hub.broadcast <- message
 	}
 }
 
@@ -94,35 +94,39 @@ func (c *Client) writePump() {
 	for {
 		select {
 		case message, ok := <-c.clientLogEntryChan:
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
-			if !ok {
-				// The hub closed the channel.
-				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
-				return
-			}
-
-			w, err := c.conn.NextWriter(websocket.TextMessage)
-			if err != nil {
-				return
-			}
 			if shouldWrite(c.serviceSubscriptions, message) {
-				w.Write(message)
-			}
-			// Add queued chat messages to the current websocket message.
-			n := len(c.clientLogEntryChan)
-			for i := 0; i < n; i++ {
-				next := <-c.clientLogEntryChan
-				if shouldWrite(c.serviceSubscriptions, next) {
-					w.Write(newline)
-					w.Write(next)
+				c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+				if !ok {
+					// The hub closed the channel.
+					c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+					return
 				}
-			}
 
-			if err := w.Close(); err != nil {
-				return
+				w, err := c.conn.NextWriter(websocket.TextMessage)
+				if err != nil {
+					return
+				}
+
+				w.Write(message)
+
+				// Add queued chat messages to the current websocket message.
+				n := len(c.clientLogEntryChan)
+				for i := 0; i < n; i++ {
+					next := <-c.clientLogEntryChan
+					if shouldWrite(c.serviceSubscriptions, next) {
+						fmt.Println("write 2")
+						w.Write(newline)
+						w.Write(next)
+					}
+				}
+
+				if err := w.Close(); err != nil {
+					return
+				}
 			}
 		case <-ticker.C:
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			fmt.Println("ticker")
 			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
 			}
