@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -46,7 +47,7 @@ type Client struct {
 	// Buffered channel of outbound messages.
 	clientLogEntryChan chan []byte
 
-	serviceSubscriptions map[string]bool
+	serviceSubscriptions sync.Map
 }
 
 // readPump pumps messages from the websocket connection to the hub.
@@ -72,10 +73,10 @@ func (c *Client) readPump() {
 		}
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
 		if strings.HasPrefix(string(message), "sub:") {
-			c.serviceSubscriptions[strings.Replace(string(message), "sub:", "", -1)] = true
+			c.serviceSubscriptions.Store(strings.Replace(string(message), "sub:", "", -1), true)
 		}
 		if strings.HasPrefix(string(message), "del:") {
-			c.serviceSubscriptions[strings.Replace(string(message), "del:", "", -1)] = false
+			c.serviceSubscriptions.Store(strings.Replace(string(message), "del:", "", -1), true)
 		}
 	}
 }
@@ -94,7 +95,7 @@ func (c *Client) writePump() {
 	for {
 		select {
 		case message, ok := <-c.clientLogEntryChan:
-			if shouldWrite(c.serviceSubscriptions, message) {
+			if c.shouldWrite(message) {
 				c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 				if !ok {
 					// The hub closed the channel.
@@ -113,8 +114,7 @@ func (c *Client) writePump() {
 				n := len(c.clientLogEntryChan)
 				for i := 0; i < n; i++ {
 					next := <-c.clientLogEntryChan
-					if shouldWrite(c.serviceSubscriptions, next) {
-						fmt.Println("write 2")
+					if c.shouldWrite(next) {
 						w.Write(newline)
 						w.Write(next)
 					}
@@ -134,10 +134,15 @@ func (c *Client) writePump() {
 	}
 }
 
-func shouldWrite(subs map[string]bool, message []byte) bool {
+func (client *Client) shouldWrite(message []byte) bool {
 	var entry = &LogEntry{}
 	json.Unmarshal(message, entry)
-	return subs[entry.Service]
+	value, _ := client.serviceSubscriptions.LoadOrStore(entry.Service, false)
+	if bValue, ok := value.(bool); ok {
+		return bValue
+	}
+
+	return false
 }
 
 // serveWs handles websocket requests from the peer.
@@ -148,7 +153,7 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
-	client := &Client{hub: hub, conn: conn, clientLogEntryChan: make(chan []byte), serviceSubscriptions: make(map[string]bool)}
+	client := &Client{hub: hub, conn: conn, clientLogEntryChan: make(chan []byte), serviceSubscriptions: sync.Map{}}
 	client.hub.register <- client
 
 	// Allow collection of memory referenced by the caller by doing all work in

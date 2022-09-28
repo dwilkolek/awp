@@ -25,7 +25,7 @@ func SetupAwsProfile() {
 
 	fileBody, _ := ioutil.ReadFile(credentialsPath)
 	if strings.Contains(string(fileBody), data) {
-		fmt.Println("AWS profile already set")
+		log.Default().Println("AWS profile already set")
 		return
 	}
 

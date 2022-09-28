@@ -94,11 +94,27 @@ type transport struct {
 	http.RoundTripper
 }
 
-func (t *transport) RoundTrip(req *http.Request) (resp *http.Response, err error) {
-	resp, _ = t.RoundTripper.RoundTrip(req)
+func logRoundtrip(req *http.Request, resp *http.Response) {
+	if req == nil {
+		return
+	}
 
-	reqBody, _ := httputil.DumpRequest(req, true)
-	respBody, _ := httputil.DumpResponse(resp, true)
+	if resp == nil {
+		return
+	}
+
+	shouldReadReqBody := strings.Contains(req.Header.Clone().Get("Content-Type"), "application/json")
+	shouldReadRespBody := strings.Contains(resp.Header.Clone().Get("Content-Type"), "application/json")
+
+	reqBody, err := httputil.DumpRequest(req, shouldReadReqBody)
+	if err != nil {
+		log.Println("Failed to dump request", err)
+	}
+
+	respBody, err := httputil.DumpResponse(resp, shouldReadRespBody)
+	if err != nil {
+		log.Println("Failed to dump response", err)
+	}
 
 	sugar, _ := newProductionZaplogger(req.Host)
 
@@ -114,6 +130,7 @@ func (t *transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 		RequestHeaders:  req.Header,
 		ResponseHeaders: resp.Header,
 	}
+
 	sugar.Infow(
 		logEntry.Message,
 		"service", logEntry.Service,
@@ -126,9 +143,15 @@ func (t *transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 		"requestHeaders", logEntry.RequestHeaders,
 		"responseHeaders", logEntry.ResponseHeaders,
 	)
+
 	log.Println(logEntry.Message)
 	logChan <- logEntry
-	return resp, nil
+}
+
+func (t *transport) RoundTrip(req *http.Request) (resp *http.Response, err error) {
+	resp, err = t.RoundTripper.RoundTrip(req)
+	go logRoundtrip(req, resp)
+	return resp, err
 }
 
 type LogEntry struct {

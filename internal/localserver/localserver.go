@@ -40,6 +40,7 @@ func startLocalWebServer() {
 
 		}
 	}()
+
 	go func() {
 		rtr := mux.NewRouter()
 		rtr.HandleFunc("/api/config", func(w http.ResponseWriter, r *http.Request) {
@@ -114,6 +115,7 @@ func handleStatic(w http.ResponseWriter, r *http.Request) {
 	if strings.HasPrefix(path, "static/") {
 		w.Header().Set("Cache-Control", "public, max-age=31536000")
 	}
+
 	stat, err := file.Stat()
 	if err == nil && stat.Size() > 0 {
 		w.Header().Set("Content-Length", fmt.Sprintf("%d", stat.Size()))
