@@ -19,7 +19,7 @@ func saveAWPConfig() {
 }
 
 func configPath() string {
-	return baseAwpPath() + "/config.json"
+	return BaseAwpPath() + "/config.json"
 }
 
 func init() {

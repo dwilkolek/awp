@@ -25,7 +25,7 @@ func SetupAwsProfile() {
 
 	fileBody, _ := ioutil.ReadFile(credentialsPath)
 	if strings.Contains(string(fileBody), data) {
-		fmt.Println("AWS profile already set")
+		log.Default().Println("AWS profile already set")
 		return
 	}
 
@@ -80,13 +80,13 @@ func (op *OpClient) getAwsConfigNote(itemId string) string {
 	return string(out)
 }
 
-func FileName(env string) string {
+func FilePathToBastionKey(env string) string {
 	homedir, _ := os.UserHomeDir()
 	return fmt.Sprintf("%s/.ssh/%s-bastion-rsa.pem", homedir, env)
 }
 
 func storeKey(env string, data []byte) {
-	err := ioutil.WriteFile(FileName(env), data, 0644)
+	err := ioutil.WriteFile(FilePathToBastionKey(env), data, 0644)
 	if err != nil {
 		panic(err)
 	}

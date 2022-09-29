@@ -12,11 +12,6 @@ import (
 	"github.com/txn2/txeh"
 )
 
-type ShortRunConfiguration struct {
-	Env      string
-	Services []ServiceConfiguration
-}
-
 func SetupHosts() {
 	hosts, err := txeh.NewHostsDefault()
 	if err != nil {

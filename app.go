@@ -5,6 +5,7 @@ import (
 	"os"
 
 	awswebproxy "github.com/tfmcdigital/aws-web-proxy/internal"
+	localserver "github.com/tfmcdigital/aws-web-proxy/internal/localserver"
 )
 
 func main() {
@@ -35,8 +36,8 @@ func main() {
 			if env != "dev" && env != "demo" && env != "prod" {
 				panic("Do not recognize that environment: " + env)
 			}
-			awswebproxy.StartWebServer()
-			awswebproxy.Start(env)
+
+			localserver.Start(env)
 		}
 	case "version":
 		{
