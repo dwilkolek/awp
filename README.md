@@ -1,6 +1,6 @@
 # AWP = AWS Web Proxy ︻デ═一
 
-This application can be used to setup your local environment and expose you services that are accessible via bastion ssh tunnel.
+This application is in alpha stage. It setup your local environment and expose you services that are accessible via bastion ssh tunnel.
 
 # Requirements
 
