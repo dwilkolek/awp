@@ -1,4 +1,4 @@
-package awswebproxy
+package aws
 
 import (
 	"context"
@@ -9,56 +9,32 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ecs"
-	"github.com/txn2/txeh"
 )
 
-func SetupHosts() {
-	hosts, err := txeh.NewHostsDefault()
-	if err != nil {
-		panic(err)
-	}
-	client := getEcsClient()
-	clusters, _ := getEcsClusterMap(client)
-	services := getEcsServices(client, clusters["dev"])
-
-	knownHosts := []string{}
-
-	hosts.AddHost("127.0.0.1", "awp")
-
-	for service := range services {
-		hosts.AddHost("127.0.0.1", service+".service")
-		knownHosts = append(knownHosts, service+".service")
-	}
-
-	AWPConfig.Hosts = knownHosts
-	saveAWPConfig()
-	// hfData := hosts.RenderHostsFile()
-	// fmt.Println(hfData)
-	err = hosts.Save()
-	if err != nil {
-		panic(err)
-	}
+type awsClient struct {
+	*ecs.Client
 }
 
-func getEcsClient() *ecs.Client {
+func GetAwsClient() *awsClient {
 	cfg, _ := config.LoadDefaultConfig(
 		context.Background(),
 		config.WithSharedConfigProfile("developer"),
 	)
 
-	client := ecs.NewFromConfig(cfg)
-
-	_, err := getEcsClusterMap(client)
+	awsClient := &awsClient{
+		ecs.NewFromConfig(cfg),
+	}
+	_, err := awsClient.GetEcsClusterMap()
 	if err != nil {
 		fmt.Println("Not signed it. Triggering login process...")
 		cmd := exec.Command("aws", "sso", "login", "--profile", "developer")
 		cmd.Run()
 	}
-	return client
+	return awsClient
 }
 
-func getEcsClusterMap(client *ecs.Client) (map[string]string, error) {
-	clusters, err := client.ListClusters(context.TODO(), &ecs.ListClustersInput{})
+func (awsClient *awsClient) GetEcsClusterMap() (map[string]string, error) {
+	clusters, err := awsClient.ListClusters(context.TODO(), &ecs.ListClustersInput{})
 	clusterMap := map[string]string{}
 	if err != nil {
 		return clusterMap, err
@@ -78,12 +54,12 @@ func getEcsClusterMap(client *ecs.Client) (map[string]string, error) {
 	return clusterMap, nil
 }
 
-func getEcsServices(client *ecs.Client, cluster string) map[string]string {
+func (awsClient *awsClient) GetEcsServices(cluster string) map[string]string {
 	params := &ecs.ListServicesInput{
 		Cluster:    aws.String(cluster),
 		MaxResults: aws.Int32(100),
 	}
-	res, err := client.ListServices(context.TODO(), params)
+	res, err := awsClient.ListServices(context.TODO(), params)
 	if err != nil {
 		panic("describe error, " + err.Error())
 	}

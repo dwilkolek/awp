@@ -1,4 +1,4 @@
-package localserver
+package proxy
 
 import (
 	"fmt"
@@ -11,28 +11,25 @@ import (
 	"time"
 
 	"github.com/elliotchance/sshtunnel"
-	awswebproxy "github.com/tfmcdigital/aws-web-proxy/internal"
+	"github.com/tfmcdigital/aws-web-proxy/internal/domain"
 )
 
-var logChan chan LogEntry = make(chan LogEntry)
-
-func Start(env string) {
+func StartProxy(env domain.Environment, certLocation string) {
 	var wg sync.WaitGroup
 	wg.Add(1)
-
-	tunnel := newTunnelConfiguration(env)
+	tunnel := newTunnelConfiguration(env, certLocation)
 	port := setupTunnel(tunnel)
-	setupGlobalRequestHandler(fmt.Sprintf("http://localhost:%d", port))
 
+	setupGlobalRequestHandler(fmt.Sprintf("http://localhost:%d", port))
 	startLocalWebServer()
 	wg.Wait()
 
 }
 
-func newTunnelConfiguration(env string) TunnelConfiguration {
+func newTunnelConfiguration(env domain.Environment, certLocation string) TunnelConfiguration {
 	return TunnelConfiguration{
-		CertificateLocation: awswebproxy.FilePathToBastionKey(env),
-		UserAndHost:         fmt.Sprintf("ec2-user@bastion.%sservices.technipfmc.com", strings.ReplaceAll(env+".", "prod.", "")),
+		CertificateLocation: certLocation, //awswebproxy.FilePathToBastionKey(env),
+		UserAndHost:         fmt.Sprintf("ec2-user@bastion.%sservices.technipfmc.com", strings.ReplaceAll(env.String()+".", "prod.", "")),
 		Destination:         "service.service:80",
 	}
 
@@ -116,9 +113,7 @@ func logRoundtrip(req *http.Request, resp *http.Response) {
 		log.Println("Failed to dump response", err)
 	}
 
-	sugar, _ := newProductionZaplogger(req.Host)
-
-	logEntry := LogEntry{
+	logEntry := domain.LogEntry{
 		Message:         fmt.Sprintf("%s %s %d %s %s", req.Host, req.Method, resp.StatusCode, req.URL.Path, req.URL.RawQuery),
 		Service:         req.Host,
 		Method:          req.Method,
@@ -131,38 +126,11 @@ func logRoundtrip(req *http.Request, resp *http.Response) {
 		ResponseHeaders: resp.Header,
 	}
 
-	sugar.Infow(
-		logEntry.Message,
-		"service", logEntry.Service,
-		"method", logEntry.Method,
-		"path", logEntry.Path,
-		"query", logEntry.Query,
-		"request", logEntry.Request,
-		"response", logEntry.Response,
-		"status", logEntry.Status,
-		"requestHeaders", logEntry.RequestHeaders,
-		"responseHeaders", logEntry.ResponseHeaders,
-	)
-
-	log.Println(logEntry.Message)
-	logChan <- logEntry
+	GetLogEntryHandler(req.Host).Submit(logEntry)
 }
 
 func (t *transport) RoundTrip(req *http.Request) (resp *http.Response, err error) {
 	resp, err = t.RoundTripper.RoundTrip(req)
 	go logRoundtrip(req, resp)
 	return resp, err
-}
-
-type LogEntry struct {
-	Message         string              `json:"message"`
-	Service         string              `json:"service"`
-	Method          string              `json:"method"`
-	Path            string              `json:"path"`
-	Query           string              `json:"query"`
-	Request         string              `json:"request"`
-	Response        string              `json:"response"`
-	Status          int                 `json:"status"`
-	RequestHeaders  map[string][]string `json:"requestHeaders"`
-	ResponseHeaders map[string][]string `json:"responseHeaders"`
 }

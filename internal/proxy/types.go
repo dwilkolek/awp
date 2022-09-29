@@ -1,4 +1,4 @@
-package localserver
+package proxy
 
 type RunConfiguration struct {
 	Tunnel   TunnelConfiguration

@@ -1,4 +1,4 @@
-package awswebproxy
+package domain
 
 import (
 	"encoding/json"
@@ -6,27 +6,35 @@ import (
 	"log"
 )
 
-type aWPConfig struct {
+type configInfo struct {
 	Version int      `json:"version"`
 	Hosts   []string `json:"hosts"`
 }
 
-var AWPConfig aWPConfig
+var config configInfo
+
+func UpdateHosts(hosts []string) {
+	config.Hosts = hosts
+	saveAWPConfig()
+}
+
+func GetConfig() configInfo {
+	return config
+}
 
 func saveAWPConfig() {
-	file, _ := json.MarshalIndent(AWPConfig, "", " ")
+	file, _ := json.MarshalIndent(config, "", " ")
 	_ = ioutil.WriteFile(configPath(), file, 0644)
 }
 
 func configPath() string {
-	return BaseAwpPath() + "/config.json"
+	return BasePath + "/config.json"
 }
 
 func init() {
-
 	content, err := ioutil.ReadFile(configPath())
 	if err != nil {
-		AWPConfig = aWPConfig{
+		config = configInfo{
 			Version: 1,
 			Hosts:   make([]string, 0),
 		}
@@ -34,10 +42,10 @@ func init() {
 	}
 
 	// Now let's unmarshall the data into `payload`
-	var payload aWPConfig
+	var payload configInfo
 	err = json.Unmarshal(content, &payload)
 	if err != nil {
 		log.Fatal("Error during Unmarshal(): ", err)
 	}
-	AWPConfig = payload
+	config = payload
 }

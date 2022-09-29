@@ -1,4 +1,4 @@
-package localserver
+package proxy
 
 import (
 	"embed"
@@ -16,7 +16,10 @@ import (
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	awswebproxy "github.com/tfmcdigital/aws-web-proxy/internal"
+	"github.com/tfmcdigital/aws-web-proxy/internal/domain"
+	"github.com/tfmcdigital/aws-web-proxy/internal/proxy/logger"
+	"github.com/tfmcdigital/aws-web-proxy/internal/proxy/websocket"
+	"github.com/tfmcdigital/aws-web-proxy/internal/utils"
 )
 
 //go:embed frontend/dist/aws-web-proxy/*
@@ -25,31 +28,19 @@ var UI embed.FS
 var uiFS fs.FS
 
 func startLocalWebServer() {
-	hub := newHub()
-	go hub.run()
 
 	uiFS, _ = fs.Sub(UI, "frontend/dist/aws-web-proxy")
-	go func() {
-		for logEntry := range logChan {
-			b, err := json.Marshal(logEntry)
-			if err != nil {
-				fmt.Println(err)
-			} else {
-				hub.broadcast <- b
-			}
-
-		}
-	}()
 
 	go func() {
 		rtr := mux.NewRouter()
+
 		rtr.HandleFunc("/api/config", func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(awswebproxy.AWPConfig)
+			json.NewEncoder(w).Encode(domain.GetConfig())
 		}).Methods("GET")
 
 		rtr.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-			serveWs(hub, w, r)
+			websocket.ServeWs(w, r)
 		})
 
 		rtr.HandleFunc("/api/logs/{service:[a-z\\.\\-]+}", func(w http.ResponseWriter, r *http.Request) {
@@ -77,12 +68,12 @@ func startLocalWebServer() {
 }
 
 func logs(service string) (string, error) {
-	logfile, err := ioutil.ReadFile(fmt.Sprintf("%s/logs/%s.log", awswebproxy.BaseAwpPath(), service))
+	logfile, err := ioutil.ReadFile(logger.GetLogFileLocation(service))
 	if err != nil {
 		return "", nil
 	}
 	logs := string(logfile)
-	entries := remove(strings.Split(logs, "\n"), "")
+	entries := utils.Remove(strings.Split(logs, "\n"), "")
 	return fmt.Sprintf("[%s]", strings.Join(entries, ",")), err
 }
 
@@ -121,6 +112,5 @@ func handleStatic(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Length", fmt.Sprintf("%d", stat.Size()))
 	}
 
-	n, _ := io.Copy(w, file)
-	log.Println("file", path, "copied", n, "bytes")
+	io.Copy(w, file)
 }

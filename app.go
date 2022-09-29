@@ -4,8 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	awswebproxy "github.com/tfmcdigital/aws-web-proxy/internal"
-	localserver "github.com/tfmcdigital/aws-web-proxy/internal/localserver"
+	app "github.com/tfmcdigital/aws-web-proxy/internal/app"
 )
 
 func main() {
@@ -16,16 +15,16 @@ func main() {
 	switch cmd {
 	case "hosts":
 		{
-			awswebproxy.SetupHosts()
+			app.SetupHosts()
 		}
 	case "setup":
 		{
-			awswebproxy.SetupAwsProfile()
-			awswebproxy.UpdateBastionKeys()
+			app.SetupAwsProfile()
+			app.UpdateBastionKeys()
 		}
 	case "update-keys":
 		{
-			awswebproxy.UpdateBastionKeys()
+			app.UpdateBastionKeys()
 		}
 	case "start":
 		{
@@ -33,15 +32,12 @@ func main() {
 			if len(os.Args) > 2 {
 				env = os.Args[2]
 			}
-			if env != "dev" && env != "demo" && env != "prod" {
-				panic("Do not recognize that environment: " + env)
-			}
 
-			localserver.Start(env)
+			app.StartProxy(env)
 		}
 	case "version":
 		{
-			fmt.Println("Version " + awswebproxy.Version)
+			fmt.Println("Version " + app.Version())
 		}
 	}
 }

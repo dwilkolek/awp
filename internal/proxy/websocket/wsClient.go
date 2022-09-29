@@ -1,4 +1,4 @@
-package localserver
+package websocket
 
 import (
 	"bytes"
@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/tfmcdigital/aws-web-proxy/internal/domain"
 )
 
 const (
@@ -39,7 +40,7 @@ var upgrader = websocket.Upgrader{
 
 // Client is a middleman between the websocket connection and the hub.
 type Client struct {
-	hub *Hub
+	hub *hub
 
 	// The websocket connection.
 	conn *websocket.Conn
@@ -135,7 +136,7 @@ func (c *Client) writePump() {
 }
 
 func (client *Client) shouldWrite(message []byte) bool {
-	var entry = &LogEntry{}
+	var entry = &domain.LogEntry{}
 	json.Unmarshal(message, entry)
 	value, _ := client.serviceSubscriptions.LoadOrStore(entry.Service, false)
 	if bValue, ok := value.(bool); ok {
@@ -146,14 +147,14 @@ func (client *Client) shouldWrite(message []byte) bool {
 }
 
 // serveWs handles websocket requests from the peer.
-func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
+func ServeWs(w http.ResponseWriter, r *http.Request) {
 	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	client := &Client{hub: hub, conn: conn, clientLogEntryChan: make(chan []byte), serviceSubscriptions: sync.Map{}}
+	client := &Client{hub: GetHubInstance(), conn: conn, clientLogEntryChan: make(chan []byte), serviceSubscriptions: sync.Map{}}
 	client.hub.register <- client
 
 	// Allow collection of memory referenced by the caller by doing all work in

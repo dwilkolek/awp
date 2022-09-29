@@ -1,13 +1,13 @@
-package awswebproxy
+package domain
 
 import (
 	"os"
 	"path/filepath"
 )
 
-var Version string = "development"
+var BasePath string = baseAwpPath()
 
-func BaseAwpPath() string {
+func baseAwpPath() string {
 	if Version == "development" {
 		path, err := os.Getwd()
 		if err != nil {

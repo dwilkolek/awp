@@ -1,6 +1,6 @@
-package localserver
+package utils
 
-func remove[T comparable](l []T, item T) []T {
+func Remove[T comparable](l []T, item T) []T {
 	for i, other := range l {
 		if other == item {
 			return append(l[:i], l[i+1:]...)
