@@ -3,7 +3,7 @@ import { HttpHeaderResponse, HttpHeaders } from "@angular/common/http";
 export interface ServerLog {
   color?: string;
   level: string;
-  ts: string;
+  timestamp: number;
   service: string;
   method: string;
   path: string;

@@ -5,7 +5,6 @@ import (
 	"compress/gzip"
 	"encoding/base64"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -13,6 +12,7 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/elliotchance/sshtunnel"
 	"github.com/tfmcdigital/aws-web-proxy/internal/domain"
@@ -82,7 +82,6 @@ func globalRequestHandler(env domain.Environment) {
 
 	proxy := &httputil.ReverseProxy{Director: director}
 
-	proxy.Transport = &loggingRoundTripper{next: http.DefaultTransport}
 	proxy.ModifyResponse = func(r *http.Response) error {
 		logRoundtrip(r.Request, r)
 
@@ -98,28 +97,6 @@ func globalRequestHandler(env domain.Environment) {
 	}
 
 	log.Printf("Started: %d\n", 80)
-}
-
-type loggingHandler struct {
-	writer  io.Writer
-	handler http.Handler
-}
-
-func (h loggingHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	h.handler.ServeHTTP(w, req)
-	if req.MultipartForm != nil {
-		req.MultipartForm.RemoveAll()
-	}
-	data, _ := httputil.DumpResponse(req.Response, true)
-	fmt.Println(data)
-}
-
-func LoggingHandler(out io.Writer, h http.Handler) http.Handler {
-	return loggingHandler{out, h}
-}
-
-type loggingRoundTripper struct {
-	next http.RoundTripper
 }
 
 func logRoundtrip(req *http.Request, resp *http.Response) {
@@ -169,6 +146,7 @@ func logRoundtrip(req *http.Request, resp *http.Response) {
 	}
 
 	logEntry := domain.LogEntry{
+		Timestamp:       time.Now().UnixMilli(),
 		Message:         fmt.Sprintf("%s %s %d %s %s", req.Host, req.Method, resp.StatusCode, req.URL.Path, req.URL.RawQuery),
 		Service:         req.Host,
 		Method:          req.Method,
@@ -183,10 +161,4 @@ func logRoundtrip(req *http.Request, resp *http.Response) {
 
 	GetLogEntryHandler(req.Host).Submit(&logEntry)
 
-}
-
-func (t *loggingRoundTripper) RoundTrip(req *http.Request) (resp *http.Response, err error) {
-	resp, err = t.next.RoundTrip(req)
-	// go logRoundtrip(req, resp)
-	return resp, err
 }

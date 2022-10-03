@@ -1,6 +1,7 @@
 package domain
 
 type LogEntry struct {
+	Timestamp       int64               `json:"timestamp"`
 	Message         string              `json:"message"`
 	Service         string              `json:"service"`
 	Method          string              `json:"method"`

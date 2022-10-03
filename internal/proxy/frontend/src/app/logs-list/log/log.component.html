@@ -4,9 +4,9 @@
       {{ log.service }}
     </mat-chip>
   </mat-card-subtitle>
-  <app-keyvalue label="Level" [value]="log.level"> </app-keyvalue>
+  <!-- <app-keyvalue label="Level" [value]="log.level"> </app-keyvalue> -->
   <app-keyvalue label="Host" [value]="log.service"> </app-keyvalue>
-  <app-keyvalue label="Time stamp" [value]="log.ts"> </app-keyvalue>
+  <app-keyvalue label="Time stamp" [value]="(log.timestamp * 1000 | date)"> </app-keyvalue>
   <app-keyvalue label="Method" [value]="log.method"> </app-keyvalue>
   <app-keyvalue label="Path" [value]="log.path"> </app-keyvalue>
   <app-keyvalue label="Query" [value]="log.query"> </app-keyvalue>

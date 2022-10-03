@@ -10,7 +10,7 @@ export class KeyvalueComponent {
   label: string;
 
   @Input()
-  value: string;
+  value: string | null | undefined;
 
   constructor() {}
 }
