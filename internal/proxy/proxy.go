@@ -3,6 +3,7 @@ package proxy
 import (
 	"bytes"
 	"compress/gzip"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -35,7 +36,7 @@ func StartProxy(env domain.Environment, certLocation string) {
 		tunnel.Start()
 	}()
 
-	go globalRequestHandler()
+	go globalRequestHandler(env)
 	go localWebServer()
 
 	wg.Wait()
@@ -51,7 +52,7 @@ func newTunnelConfiguration(env domain.Environment, certLocation string) TunnelC
 
 }
 
-func globalRequestHandler() {
+func globalRequestHandler(env domain.Environment) {
 	origin, _ := url.Parse(fmt.Sprintf("http://localhost:%d", SSH_TUNNEL_PORT))
 	director := func(req *http.Request) {
 		host := req.Host
@@ -64,6 +65,17 @@ func globalRequestHandler() {
 			req.URL.Host = originAwp.Host
 		} else {
 			req.URL.Host = origin.Host
+			if env != domain.PROD {
+				if domain.GetConfig().HeaderOverwrites[host] != nil {
+					for header, value := range domain.GetConfig().HeaderOverwrites[host] {
+						if strings.HasPrefix(value, "toBase64:") {
+							req.Header.Add(header, base64.StdEncoding.EncodeToString([]byte(strings.Replace(value, "toBase64:", "", 1))))
+						} else {
+							req.Header.Add(header, value)
+						}
+					}
+				}
+			}
 		}
 
 	}

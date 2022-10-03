@@ -1,0 +1,15 @@
+<mat-card class="card">
+  <mat-card-subtitle [ngStyle]="{ color: color[log.service] }">
+    <mat-chip [ngStyle]="{ background: color[log.service] }">
+      {{ log.service }}
+    </mat-chip>
+  </mat-card-subtitle>
+  <app-keyvalue label="Level" [value]="log.level"> </app-keyvalue>
+  <app-keyvalue label="Host" [value]="log.service"> </app-keyvalue>
+  <app-keyvalue label="Time stamp" [value]="log.ts"> </app-keyvalue>
+  <app-keyvalue label="Method" [value]="log.method"> </app-keyvalue>
+  <app-keyvalue label="Path" [value]="log.path"> </app-keyvalue>
+  <app-keyvalue label="Query" [value]="log.query"> </app-keyvalue>
+  <app-keyvalue label="Status" [value]="log.status.toString()"> </app-keyvalue>
+  <app-logs-details-panel [log]="log"></app-logs-details-panel>
+</mat-card>

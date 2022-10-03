@@ -26,6 +26,11 @@ func main() {
 		{
 			app.UpdateBastionKeys()
 		}
+	case "add-user-headers":
+		{
+			serviceName := os.Args[2]
+			app.AddDefaultUserHeaders(serviceName)
+		}
 	case "start":
 		{
 			env := "dev"

@@ -1,0 +1,10 @@
+<div class="container">
+  <cdk-virtual-scroll-viewport autosize style="height: 100%" itemSize="30">
+    <pre *ngIf="serverLogs.length === 0" style="color: white"
+      >{{ dateNow | date: "short" }} Select service to display logs </pre
+    >
+    <ng-container *cdkVirtualFor="let log of serverLogs">
+      <app-log [log]="log"> </app-log>
+    </ng-container>
+  </cdk-virtual-scroll-viewport>
+</div>

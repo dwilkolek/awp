@@ -113,3 +113,7 @@ func storeKey(env domain.Environment, data []byte) {
 func Version() string {
 	return domain.Version
 }
+
+func AddDefaultUserHeaders(service string) {
+	domain.AddDefaultUserHeaders(service)
+}
