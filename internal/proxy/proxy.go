@@ -1,94 +1,113 @@
 package proxy
 
 import (
+	"bytes"
+	"compress/gzip"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/elliotchance/sshtunnel"
 	"github.com/tfmcdigital/aws-web-proxy/internal/domain"
 )
 
+const SSH_TUNNEL_PORT = 10077
+const WEB_SERVER_PORT = 2137
+
 func StartProxy(env domain.Environment, certLocation string) {
 	var wg sync.WaitGroup
 	wg.Add(1)
-	tunnel := newTunnelConfiguration(env, certLocation)
-	port := setupTunnel(tunnel)
+	go func() {
+		tunnelConfig := newTunnelConfiguration(env, certLocation)
+		tunnel := sshtunnel.NewSSHTunnel(
+			tunnelConfig.UserAndHost,
+			sshtunnel.PrivateKeyFile(tunnelConfig.CertificateLocation),
+			tunnelConfig.Destination,
+			fmt.Sprintf("%d", SSH_TUNNEL_PORT),
+		)
+		tunnel.Log = log.Default()
+		tunnel.Start()
+	}()
 
-	setupGlobalRequestHandler(fmt.Sprintf("http://localhost:%d", port))
-	startLocalWebServer()
+	go globalRequestHandler()
+	go localWebServer()
+
 	wg.Wait()
 
 }
 
 func newTunnelConfiguration(env domain.Environment, certLocation string) TunnelConfiguration {
 	return TunnelConfiguration{
-		CertificateLocation: certLocation, //awswebproxy.FilePathToBastionKey(env),
+		CertificateLocation: certLocation,
 		UserAndHost:         fmt.Sprintf("ec2-user@bastion.%sservices.technipfmc.com", strings.ReplaceAll(env.String()+".", "prod.", "")),
 		Destination:         "service.service:80",
 	}
 
 }
 
-func setupTunnel(tunnelConfig TunnelConfiguration) int {
-	tunnel := sshtunnel.NewSSHTunnel(
-		tunnelConfig.UserAndHost,
-		sshtunnel.PrivateKeyFile(tunnelConfig.CertificateLocation),
-		tunnelConfig.Destination,
-		"0",
-	)
+func globalRequestHandler() {
+	origin, _ := url.Parse(fmt.Sprintf("http://localhost:%d", SSH_TUNNEL_PORT))
+	director := func(req *http.Request) {
+		host := req.Host
+		req.Header.Add("host", host)
+		req.Host = host
+		req.URL.Scheme = "http"
 
-	tunnel.Log = log.Default()
-
-	go tunnel.Start()
-	time.Sleep(100 * time.Millisecond)
-	tunnel.Log.Printf("Started and exposed on port: %d\n", tunnel.Local.Port)
-
-	return tunnel.Local.Port
-}
-func setupGlobalRequestHandler(to string) {
-	go func() {
-
-		origin, _ := url.Parse(to)
-		director := func(req *http.Request) {
-			host := req.Host
-			req.Header.Add("host", host)
-			req.Host = host
-			req.URL.Scheme = "http"
-			if host == "awp" {
-				originAwp, _ := url.Parse("http://localhost:2137")
-				req.URL.Host = originAwp.Host
-			} else {
-				req.URL.Host = origin.Host
-			}
-
+		if host == "awp" {
+			originAwp, _ := url.Parse(fmt.Sprintf("http://localhost:%d", WEB_SERVER_PORT))
+			req.URL.Host = originAwp.Host
+		} else {
+			req.URL.Host = origin.Host
 		}
 
-		proxy := &httputil.ReverseProxy{Director: director}
-		proxy.Transport = &transport{http.DefaultTransport}
-		server := http.NewServeMux()
+	}
 
-		server.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			proxy.ServeHTTP(w, r)
-		})
+	proxy := &httputil.ReverseProxy{Director: director}
 
-		// logger.Printf("Starting server at port: %d\n", 80)
-		if err := http.ListenAndServe(fmt.Sprintf(":%d", 80), server); err != nil {
-			log.Fatal("Failed. Try to execute `lsof -t -i tcp:80 | xargs kill`.")
-		}
+	proxy.Transport = &loggingRoundTripper{next: http.DefaultTransport}
+	proxy.ModifyResponse = func(r *http.Response) error {
+		logRoundtrip(r.Request, r)
 
-		log.Printf("Started: %d\n", 80)
-	}()
+		return nil
+	}
+	server := http.NewServeMux()
+	server.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		proxy.ServeHTTP(w, r)
+	})
 
+	if err := http.ListenAndServe(fmt.Sprintf(":%d", 80), server); err != nil {
+		log.Fatal("Failed. Try to execute `lsof -t -i tcp:80 | xargs kill`.")
+	}
+
+	log.Printf("Started: %d\n", 80)
 }
 
-type transport struct {
-	http.RoundTripper
+type loggingHandler struct {
+	writer  io.Writer
+	handler http.Handler
+}
+
+func (h loggingHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	h.handler.ServeHTTP(w, req)
+	if req.MultipartForm != nil {
+		req.MultipartForm.RemoveAll()
+	}
+	data, _ := httputil.DumpResponse(req.Response, true)
+	fmt.Println(data)
+}
+
+func LoggingHandler(out io.Writer, h http.Handler) http.Handler {
+	return loggingHandler{out, h}
+}
+
+type loggingRoundTripper struct {
+	next http.RoundTripper
 }
 
 func logRoundtrip(req *http.Request, resp *http.Response) {
@@ -100,17 +119,41 @@ func logRoundtrip(req *http.Request, resp *http.Response) {
 		return
 	}
 
+	if req.Host == "" {
+		return
+	}
+
 	shouldReadReqBody := strings.Contains(req.Header.Clone().Get("Content-Type"), "application/json")
 	shouldReadRespBody := strings.Contains(resp.Header.Clone().Get("Content-Type"), "application/json")
+	isRespGzip := strings.Contains(resp.Header.Clone().Get("Content-Encoding"), "gzip")
 
 	reqBody, err := httputil.DumpRequest(req, shouldReadReqBody)
 	if err != nil {
 		log.Println("Failed to dump request", err)
 	}
 
-	respBody, err := httputil.DumpResponse(resp, shouldReadRespBody)
+	respBody, err := httputil.DumpResponse(resp, shouldReadRespBody && !isRespGzip)
 	if err != nil {
 		log.Println("Failed to dump response", err)
+	}
+
+	if shouldReadRespBody && isRespGzip {
+		bodyBytes, _ := ioutil.ReadAll(resp.Body)
+		resp.Body.Close() //  must close
+		resp.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
+		// fmt.Printf("----------------\n%s\n----------------\n", string(bodyBytes))
+		reader := bytes.NewReader([]byte(bodyBytes))
+		gzreader, err := gzip.NewReader(reader)
+		if err != nil {
+			log.Println("Failed to dump response", err)
+		} else {
+			output, err := ioutil.ReadAll(gzreader)
+			if err != nil {
+				log.Println("Failed to dump response", err)
+			} else {
+				respBody = append(respBody, output...)
+			}
+		}
 	}
 
 	logEntry := domain.LogEntry{
@@ -126,11 +169,12 @@ func logRoundtrip(req *http.Request, resp *http.Response) {
 		ResponseHeaders: resp.Header,
 	}
 
-	GetLogEntryHandler(req.Host).Submit(logEntry)
+	GetLogEntryHandler(req.Host).Submit(&logEntry)
+
 }
 
-func (t *transport) RoundTrip(req *http.Request) (resp *http.Response, err error) {
-	resp, err = t.RoundTripper.RoundTrip(req)
-	go logRoundtrip(req, resp)
+func (t *loggingRoundTripper) RoundTrip(req *http.Request) (resp *http.Response, err error) {
+	resp, err = t.next.RoundTrip(req)
+	// go logRoundtrip(req, resp)
 	return resp, err
 }

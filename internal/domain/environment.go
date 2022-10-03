@@ -1,6 +1,8 @@
 package domain
 
-import "fmt"
+import (
+	"strings"
+)
 
 type Environment string
 
@@ -15,16 +17,13 @@ func (env Environment) String() string {
 }
 
 func ParseEnvironment(s string) (e Environment, err error) {
-	environments := map[Environment]struct{}{
-		DEV:  {},
-		DEMO: {},
-		PROD: {},
+	environments := map[string]Environment{
+		DEV.String():  DEV,
+		DEMO.String(): DEMO,
+		PROD.String(): PROD,
 	}
 
-	env := Environment(s)
-	_, ok := environments[env]
-	if !ok {
-		return e, fmt.Errorf(`cannot parse:[%s] as environment`, s)
-	}
+	e = environments[strings.ToLower(s)]
+
 	return e, nil
 }

@@ -27,44 +27,42 @@ var UI embed.FS
 
 var uiFS fs.FS
 
-func startLocalWebServer() {
+func localWebServer() {
 
 	uiFS, _ = fs.Sub(UI, "frontend/dist/aws-web-proxy")
 
-	go func() {
-		rtr := mux.NewRouter()
+	rtr := mux.NewRouter()
 
-		rtr.HandleFunc("/api/config", func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(domain.GetConfig())
-		}).Methods("GET")
+	rtr.HandleFunc("/api/config", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(domain.GetConfig())
+	}).Methods("GET")
 
-		rtr.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-			websocket.ServeWs(w, r)
-		})
+	rtr.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+		websocket.ServeWs(w, r)
+	})
 
-		rtr.HandleFunc("/api/logs/{service:[a-z\\.\\-]+}", func(w http.ResponseWriter, r *http.Request) {
-			params := mux.Vars(r)
-			service := params["service"]
-			data, err := logs(service)
-			w.Header().Set("Content-Type", "application/json")
-			if err != nil {
-				w.WriteHeader(http.StatusNotFound)
-				return
-			}
-			w.Write([]byte(data))
-		}).Methods("GET")
-
-		rtr.PathPrefix("/").HandlerFunc(handleStatic)
-		log.Println("Access UI: http://awp and http://localhost:2137")
-
-		if err := http.ListenAndServe("localhost:2137", handlers.CORS(
-			handlers.AllowedOrigins([]string{"http://localhost:3000"}), handlers.AllowCredentials(),
-		)(rtr)); err != nil {
-			log.Fatal("Failed. Try to execute `lsof -t -i tcp:2137 | xargs kill`.")
+	rtr.HandleFunc("/api/logs/{service:[a-z\\.\\-]+}", func(w http.ResponseWriter, r *http.Request) {
+		params := mux.Vars(r)
+		service := params["service"]
+		data, err := logs(service)
+		w.Header().Set("Content-Type", "application/json")
+		if err != nil {
+			w.WriteHeader(http.StatusNotFound)
+			return
 		}
+		w.Write([]byte(data))
+	}).Methods("GET")
 
-	}()
+	rtr.PathPrefix("/").HandlerFunc(handleStatic)
+	log.Printf("Access UI: http://awp and http://localhost:%d", WEB_SERVER_PORT)
+
+	if err := http.ListenAndServe(fmt.Sprintf("localhost:%d", WEB_SERVER_PORT), handlers.CORS(
+		handlers.AllowedOrigins([]string{"http://localhost:3000"}), handlers.AllowCredentials(),
+	)(rtr)); err != nil {
+		log.Fatal("Failed. Try to execute `lsof -t -i tcp:2137 | xargs kill`.")
+	}
+
 }
 
 func logs(service string) (string, error) {

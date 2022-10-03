@@ -24,9 +24,11 @@ const AWS_PROFILE_DOCUMENT = "qt7ixhmfmszawh6c42gdjtx5wq"
 
 func StartProxy(env string) {
 	environment, err := domain.ParseEnvironment(env)
+	log.Default().Printf("Starting proxy to %s environemt\n", environment.String())
 	if err != nil {
 		log.Default().Fatalln(err)
 	}
+
 	proxy.StartProxy(environment, filePathToBastionKey(environment))
 }
 

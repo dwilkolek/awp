@@ -4,3 +4,7 @@ config.json
 main
 bin
 socket-test-app
+
+.angular
+dist
+node_modules

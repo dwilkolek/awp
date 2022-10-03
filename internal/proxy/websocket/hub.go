@@ -1,13 +1,17 @@
 package websocket
 
-import "sync"
+import (
+	"sync"
+
+	"github.com/tfmcdigital/aws-web-proxy/internal/domain"
+)
 
 type hub struct {
 	// Registered clients.
 	clients map[*Client]bool
 
 	// Inbound messages from the clients.
-	Broadcast chan []byte
+	Broadcast chan *domain.LogEntry
 
 	// Register requests from the clients.
 	register chan *Client
@@ -21,12 +25,13 @@ var lock = &sync.Mutex{}
 var singleInstance *hub
 
 func GetHubInstance() *hub {
+	lock.Lock()
+	defer lock.Unlock()
+
 	if singleInstance == nil {
-		lock.Lock()
-		defer lock.Unlock()
 		if singleInstance == nil {
 			singleInstance = &hub{
-				Broadcast:  make(chan []byte),
+				Broadcast:  make(chan *domain.LogEntry),
 				register:   make(chan *Client),
 				unregister: make(chan *Client),
 				clients:    make(map[*Client]bool),
@@ -50,11 +55,13 @@ func (h *hub) run() {
 			}
 		case message := <-h.Broadcast:
 			for client := range h.clients {
-				select {
-				case client.clientLogEntryChan <- message:
-				default:
-					close(client.clientLogEntryChan)
-					delete(h.clients, client)
+				if client.shouldWrite(message) {
+					select {
+					case client.clientLogEntryChan <- message:
+					default:
+						close(client.clientLogEntryChan)
+						delete(h.clients, client)
+					}
 				}
 			}
 		}
