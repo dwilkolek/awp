@@ -39,6 +39,7 @@ All services are available locally on port 80 at `<servicename>.service` eg. htt
 - `./awp setup` - creates aws profile to use `hosts` command and updates bastion keys from 1password
 - `./awp hosts` - requires sudo, updates `/etc/hosts` with service list from aws
 - `./awp update-keys` - updates keys to bastion from 1password
+- `./awp add-user-headers <app.service>` - adds default user headers overwrite for service. Can be changed in config file that exists near executable. example usage: `./awp add-user-headers nemo.service`
 - `./awp version` - prints application version
 
 # Development
@@ -48,20 +49,20 @@ All services are available locally on port 80 at `<servicename>.service` eg. htt
 Build frontend
 
 ```
-cd internal/frontend
-npm install
-npm build
+cd internal/proxy/frontend
+npm ci
+npm run build
 ```
 
 Execute `go run app.go [command]` and GL.
 
 ## Frontend (WIP)
 
-1. start backend by `go run app.go start` or `awp start`
+1. build backend and start it by `go run app.go start` orstart existing installation by `awp start`
 2. start frontend:
 
 ```
-cd internal/frontend
+cd internal/proxy/frontend
 npm install
 npm start
 ```
