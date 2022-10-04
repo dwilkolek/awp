@@ -48,7 +48,7 @@ func AddDefaultUserHeaders(service string) {
 
 func saveAWPConfig() {
 	file, _ := json.MarshalIndent(config, "", " ")
-	log.Printf("Saving config version %d... %s\n%+v\n", config.Version, configPath(), config)
+	log.Printf("Saving config(version = %d) ... %s\n", config.Version, configPath())
 	err := ioutil.WriteFile(configPath(), file, 0644)
 	if err != nil {
 		panic(err)
@@ -61,22 +61,26 @@ func configPath() string {
 
 func init() {
 	lock.Lock()
+	emptyConfig := configInfo{
+		Version:          2,
+		Hosts:            make([]string, 0),
+		HeaderOverwrites: make(map[string]map[string]string),
+	}
 	content, err := ioutil.ReadFile(configPath())
 	if err != nil {
-		config = configInfo{
-			Version:          2,
-			Hosts:            make([]string, 0),
-			HeaderOverwrites: make(map[string]map[string]string),
-		}
+		config = emptyConfig
 	}
 
 	// Now let's unmarshall the data into `payload`
 	var payload configInfo
 	err = json.Unmarshal(content, &payload)
 	if err != nil {
-		log.Fatal("Error during Unmarshal(): ", err)
+		log.Printf("Cannot read config file from %s. Creating new one. \n", configPath())
+		config = emptyConfig
+		saveAWPConfig()
+	} else {
+		config = payload
 	}
-	config = payload
 
 	if config.Version == 1 {
 		config.Version = 2
