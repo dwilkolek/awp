@@ -1,7 +1,7 @@
 #!/bin/bash
 echo "Building version $1"
 git tag $1
-cd internal/frontend
+cd internal/proxy/frontend
 npm ci
 npm run build
 cd ../..
