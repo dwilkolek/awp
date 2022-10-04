@@ -1,0 +1,53 @@
+<div class="server-list-container">
+  <mat-form-field
+    [formGroup]="serverForm"
+    class="filter-input"
+    appearance="fill"
+  >
+    <mat-label>Server filter</mat-label>
+    <input
+      matInput
+      placeholder="Search for server"
+      value=""
+      formControlName="serverName"
+    />
+  </mat-form-field>
+  <div
+    [style.padding]="selectedHosts && selectedHosts.length > 0 ? '16px' : '0px'"
+  >
+    <mat-chip-list class="chip-list">
+      <mat-chip
+        [ngStyle]="{ background: colors[host] }"
+        *ngFor="let host of selectedHosts"
+        (removed)="remove(host)"
+      >
+        {{ host }}
+        <button matChipRemove>
+          <mat-icon>cancel</mat-icon>
+        </button>
+      </mat-chip>
+    </mat-chip-list>
+  </div>
+
+  <mat-selection-list
+    #hostsList
+    multiple="false"
+    (selectionChange)="
+      onSelectedOptionChange(hostsList.selectedOptions.selected)
+    "
+  >
+    <mat-list-option
+      *ngFor="
+        let host of hosts
+          | searchServer: this.serverForm.get('serverName')?.value
+      "
+      [value]="host"
+      style="color: #f1f2eb"
+      [style.display]="
+        selectedHosts && selectedHosts.includes(host) ? 'none' : 'inline'
+      "
+    >
+      {{ host }}
+    </mat-list-option>
+  </mat-selection-list>
+</div>

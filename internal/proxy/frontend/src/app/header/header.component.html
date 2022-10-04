@@ -1,0 +1,13 @@
+<mat-toolbar class="root">
+  <div class="logo" (click)="reloadPage()">
+    <p class="mat-display-6 title">AWS Service Proxy</p>
+    <mat-icon class="awp-icon" fontIcon="smart_toy"></mat-icon>
+  </div>
+
+  <div>
+    <button [matTooltip]="tooltipContent" mat-icon-button aria-label="Example icon button with a home icon"
+      (click)="onServerButtonClick()">
+      <mat-icon>dns</mat-icon>
+    </button>
+  </div>
+</mat-toolbar>

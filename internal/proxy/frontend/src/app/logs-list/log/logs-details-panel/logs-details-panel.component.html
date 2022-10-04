@@ -1,0 +1,21 @@
+<mat-accordion>
+  <mat-expansion-panel
+    class="mat-elevation-z0"
+    (opened)="panelOpenState = true"
+    (closed)="panelOpenState = false"
+  >
+    <mat-expansion-panel-header>
+      <mat-panel-title> View details </mat-panel-title>
+    </mat-expansion-panel-header>
+    <div class="details-expanded-container" *ngIf="panelOpenState">
+      <div class="prop-container">
+        <p>Request headers</p>
+        <pre>{{ log.responseHeaders | json }}</pre>
+      </div>
+      <div class="prop-container">
+        <p class="title">Response headers</p>
+        <pre>{{ log.requestHeaders | json }}</pre>
+      </div>
+    </div>
+  </mat-expansion-panel>
+</mat-accordion>

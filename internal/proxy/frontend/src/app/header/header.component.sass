@@ -1,0 +1,34 @@
+@import "../shared/variables"
+
+.root
+  display: flex
+  background: transparent
+  height: 64px
+  justify-content: space-between
+  .logo
+    cursor: pointer
+    display: inline-flex
+    column-gap: 8px
+    align-items: center
+    padding: 4px 8px
+    border-radius: 8px
+    transition: all 0.250s
+    .title
+      color: $textPrimary
+      margin: 0
+      padding: 0
+    .awp-icon
+      text-shadow: none
+      &:hover
+        text-shadow: none
+
+    &:hover
+      text-shadow: $textPrimary 0px 0px 24px
+      color: $textSecondary
+
+.server-button
+  background: transparent
+  outline: none
+
+mat-icon
+  color: white

@@ -4,3 +4,9 @@ config.json
 main
 bin
 socket-test-app
+
+.angular
+dist
+.vscode
+node_modules
+.DS_Store

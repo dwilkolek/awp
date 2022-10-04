@@ -1,0 +1,14 @@
+<mat-drawer-container class="example-container" hasBackdrop="false">
+  <mat-drawer #drawer mode="side" opened="true" position="end">
+    <app-serverlist></app-serverlist>
+  </mat-drawer>
+  <mat-drawer-content>
+    <app-header
+      [tooltipContent]="
+        drawer.opened ? 'Close server list' : 'Open server list'
+      "
+      (serverButtonEvent)="drawer.toggle()"
+    ></app-header>
+    <app-logs></app-logs>
+  </mat-drawer-content>
+</mat-drawer-container>
