@@ -32,6 +32,7 @@ func (logEntryHandler *logEntryHandler) Submit(logEntry *domain.LogEntry) {
 		zapLogger := logger.GetLogger(logEntry.Service)
 		zapLogger.Infow(
 			logEntry.Message,
+			"timestamp", logEntry.Timestamp,
 			"service", logEntry.Service,
 			"method", logEntry.Method,
 			"path", logEntry.Path,
