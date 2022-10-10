@@ -44,5 +44,10 @@ func main() {
 		{
 			fmt.Println("Version " + app.Version())
 		}
+	case "startSession":
+		{
+			app.StartBastionProxy()
+		}
 	}
+
 }

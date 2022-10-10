@@ -117,3 +117,7 @@ func Version() string {
 func AddDefaultUserHeaders(service string) {
 	domain.AddDefaultUserHeaders(service)
 }
+
+func StartBastionProxy() {
+	aws.GetAwsClient().StartBastionProxy()
+}

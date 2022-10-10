@@ -3,26 +3,50 @@ package aws
 import (
 	"context"
 	"fmt"
+	"log"
 	"os/exec"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ecs"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
 )
 
 type awsClient struct {
-	*ecs.Client
+	ecsClient *ecs.Client
+	ssmClient *ssm.Client
 }
 
-func GetAwsClient() *awsClient {
+func (awsClient *awsClient) StartBastionProxy() {
+	so, err := awsClient.ssmClient.StartSession(context.TODO(), &ssm.StartSessionInput{
+		Target:       aws.String("i-09e46925fbb91c0f4"),
+		DocumentName: aws.String("AWS-StartPortForwardingSession"),
+		Parameters: map[string][]string{
+			"portNumber":      {"80"},
+			"localPortNumber": {"17777"},
+		},
+	})
+	if err != nil {
+		log.Panicln(err)
+	}
+
+	log.Println(so.SessionId)
+}
+
+func getConfig() aws.Config {
 	cfg, _ := config.LoadDefaultConfig(
 		context.Background(),
 		config.WithSharedConfigProfile("developer"),
 	)
+	return cfg
+}
+
+func GetAwsClient() *awsClient {
 
 	awsClient := &awsClient{
-		ecs.NewFromConfig(cfg),
+		ecsClient: ecs.NewFromConfig(getConfig()),
+		ssmClient: ssm.NewFromConfig(getConfig()),
 	}
 	_, err := awsClient.GetEcsClusterMap()
 	if err != nil {
@@ -34,7 +58,7 @@ func GetAwsClient() *awsClient {
 }
 
 func (awsClient *awsClient) GetEcsClusterMap() (map[string]string, error) {
-	clusters, err := awsClient.ListClusters(context.TODO(), &ecs.ListClustersInput{})
+	clusters, err := awsClient.ecsClient.ListClusters(context.TODO(), &ecs.ListClustersInput{})
 	clusterMap := map[string]string{}
 	if err != nil {
 		return clusterMap, err
@@ -59,7 +83,7 @@ func (awsClient *awsClient) GetEcsServices(cluster string) map[string]string {
 		Cluster:    aws.String(cluster),
 		MaxResults: aws.Int32(100),
 	}
-	res, err := awsClient.ListServices(context.TODO(), params)
+	res, err := awsClient.ecsClient.ListServices(context.TODO(), params)
 	if err != nil {
 		panic("describe error, " + err.Error())
 	}
