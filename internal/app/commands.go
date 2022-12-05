@@ -1,7 +1,6 @@
 package app
 
 import (
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -10,17 +9,8 @@ import (
 	"github.com/tfmcdigital/aws-web-proxy/internal/domain"
 	"github.com/tfmcdigital/aws-web-proxy/internal/proxy"
 	"github.com/tfmcdigital/aws-web-proxy/internal/tools/aws"
-	"github.com/tfmcdigital/aws-web-proxy/internal/tools/onepassword"
 	"github.com/txn2/txeh"
 )
-
-var envDocumentIdMap = map[domain.Environment]string{
-	domain.DEV:  "hgbzp2ptafe75aqxi5bgzkchty",
-	domain.DEMO: "bk3jvxag6na2rn6nruorn2m5ri",
-	domain.PROD: "czzulyxrkjaivmsq2xo7mgpqqm",
-}
-
-const AWS_PROFILE_DOCUMENT = "qt7ixhmfmszawh6c42gdjtx5wq"
 
 func StartProxy(env string) {
 	environment, err := domain.ParseEnvironment(env)
@@ -29,7 +19,7 @@ func StartProxy(env string) {
 		log.Default().Fatalln(err)
 	}
 
-	proxy.StartProxy(environment, filePathToBastionKey(environment))
+	proxy.StartProxy(environment)
 }
 
 func SetupHosts() {
@@ -60,10 +50,8 @@ func SetupHosts() {
 }
 
 func SetupAwsProfile() {
-	client := onepassword.GetOpClient()
 	homedir, _ := os.UserHomeDir()
 	credentialsPath := homedir + "/.aws/credentials"
-	data := strings.ReplaceAll(client.GetAwsConfigNote(AWS_PROFILE_DOCUMENT), "\"", "")
 	_, err := os.Stat(credentialsPath)
 	if os.IsNotExist(err) {
 		os.MkdirAll(homedir+"/.aws", os.ModePerm)
@@ -71,7 +59,7 @@ func SetupAwsProfile() {
 	}
 
 	fileBody, _ := ioutil.ReadFile(credentialsPath)
-	if strings.Contains(string(fileBody), data) {
+	if strings.Contains(string(fileBody), domain.AWS_PROFILE) {
 		log.Default().Println("AWS profile already set")
 		return
 	}
@@ -83,31 +71,11 @@ func SetupAwsProfile() {
 	}
 
 	defer f.Close()
-	if _, err := f.WriteString("\n" + data); err != nil {
+	if _, err := f.WriteString("\n" + domain.AWS_PROFILE); err != nil {
 		log.Println(err)
 	}
-}
 
-func UpdateBastionKeys() {
-	client := onepassword.GetOpClient()
-
-	for env, documentId := range envDocumentIdMap {
-		keyBytes := client.GetDocument(documentId)
-		storeKey(env, keyBytes)
-	}
-}
-
-func filePathToBastionKey(env domain.Environment) string {
-	homedir, _ := os.UserHomeDir()
-	return fmt.Sprintf("%s/.ssh/%s-bastion-rsa.pem", homedir, env)
-}
-
-func storeKey(env domain.Environment, data []byte) {
-	err := ioutil.WriteFile(filePathToBastionKey(env), data, 0644)
-	if err != nil {
-		panic(err)
-	}
-	log.Default().Printf("Successfuly updated key for %s environment\n", env)
+	log.Default().Println("AWS profile stored")
 }
 
 func Version() string {
@@ -116,8 +84,4 @@ func Version() string {
 
 func AddDefaultUserHeaders(service string) {
 	domain.AddDefaultUserHeaders(service)
-}
-
-func StartBastionProxy() {
-	aws.GetAwsClient().StartBastionProxy()
 }

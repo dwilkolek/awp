@@ -1,4 +1,18 @@
 @import "../../shared/variables"
+
+.entry
+    display: flex
+    flex-direction: row
+    align-items: center
+    gap: 16px
+    &.selected
+        background: #f00
+    .chip
+        border-radius: 100px
+        width: 1em
+        height: 1em
+        display: inline-block
+
 .mat-card
     background: transparent
 

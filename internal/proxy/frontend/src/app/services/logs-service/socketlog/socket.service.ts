@@ -8,12 +8,20 @@ import { ServerLog } from "../types";
   providedIn: "root",
 })
 export class SocketlogService {
+  subscriptionColorMap: { [index: string]: string } = JSON.parse(
+    localStorage.getItem("subscriptionColorMap") || "{}"
+  );
   serverLogUrl = "ws://localhost:2137/ws";
+  private logs: ServerLog[] = [];
   private _observableLogs = new BehaviorSubject<ServerLog[]>([]);
   observableLogs = this._observableLogs.asObservable();
+
   private _noArchiveLogs = new BehaviorSubject<string>("");
   noArchiveLogs = this._noArchiveLogs.asObservable();
-  private _colors = new BehaviorSubject<Record<string, string>>({});
+
+  private _colors = new BehaviorSubject<Record<string, string>>(
+    this.subscriptionColorMap
+  );
   colors = this._colors.asObservable();
 
   private socket = new WebSocketSubject({
@@ -21,37 +29,56 @@ export class SocketlogService {
     serializer: (message: string) => message,
   });
 
-  constructor(private serverLog: ServerlogService) {}
-  subscribeToLog(host: string) {
-    const currentLogs = this._observableLogs.getValue();
+  constructor(private serverLog: ServerlogService) {
+    Object.entries(this.subscriptionColorMap).forEach((entry) =>
+      this.subscribeToLog(entry[0], entry[1])
+    );
+  }
+
+  subscribeToLog(host: string, color: string | undefined = undefined) {
+    console.log("subsribing to ", host, color);
+
     this.serverLog.getLogs(host).subscribe((data) => {
       if (data.length === 0) {
         this._noArchiveLogs.next(`No archive logs available for ${host}`);
       }
-      this._observableLogs.next([...currentLogs, ...data]);
+      this.logs = [...this.logs, ...data];
+      this._observableLogs.next(this.sortedLogsCopy());
       this.socket.next(`sub:${host}`);
       this.socket.asObservable().subscribe((socketLog) => {
-        this._observableLogs.next([
-          ...this._observableLogs.getValue(),
-          socketLog as unknown as ServerLog,
-        ]);
+        this.logs.push(socketLog as unknown as ServerLog);
+        this._observableLogs.next(this.sortedLogsCopy());
       });
     });
+    if (!color) {
+      this.assignColor(host);
+    }
+  }
+
+  private sortedLogsCopy() {
+    return [...this.logs.sort((a, b) => a.timestamp - b.timestamp)];
   }
 
   assignColor(host: string) {
-    this._colors.next({
+    const nextState = {
       ...this._colors.getValue(),
       [host]: this.generateLightColorHex(),
-    });
+    };
+    this._colors.next(nextState);
+    localStorage.setItem("subscriptionColorMap", JSON.stringify(nextState));
   }
 
   unsubscribeFromLog(host: string) {
     this.socket.next(`del:${host}`);
-    const filtered = this._observableLogs
-      .getValue()
-      .filter((server) => server.service !== host);
-    this._observableLogs.next([...filtered]);
+    this.logs = this.logs.filter((server) => server.service !== host);
+
+    const nextState = {
+      ...this._colors.getValue(),
+    };
+    delete nextState[host];
+    this._colors.next(nextState);
+    localStorage.setItem("subscriptionColorMap", JSON.stringify(nextState));
+    this._observableLogs.next(this.sortedLogsCopy());
   }
 
   private generateLightColorHex() {

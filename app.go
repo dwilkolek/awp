@@ -20,11 +20,6 @@ func main() {
 	case "setup":
 		{
 			app.SetupAwsProfile()
-			app.UpdateBastionKeys()
-		}
-	case "update-keys":
-		{
-			app.UpdateBastionKeys()
 		}
 	case "add-user-headers":
 		{
@@ -43,10 +38,6 @@ func main() {
 	case "version":
 		{
 			fmt.Println("Version " + app.Version())
-		}
-	case "startSession":
-		{
-			app.StartBastionProxy()
 		}
 	}
 

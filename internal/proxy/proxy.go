@@ -14,28 +14,16 @@ import (
 	"sync"
 	"time"
 
-	"github.com/elliotchance/sshtunnel"
 	"github.com/tfmcdigital/aws-web-proxy/internal/domain"
+	"github.com/tfmcdigital/aws-web-proxy/internal/tools/aws"
 )
 
-const SSH_TUNNEL_PORT = 10077
 const WEB_SERVER_PORT = 2137
 
-func StartProxy(env domain.Environment, certLocation string) {
+func StartProxy(env domain.Environment) {
 	var wg sync.WaitGroup
 	wg.Add(1)
-	go func() {
-		tunnelConfig := newTunnelConfiguration(env, certLocation)
-		tunnel := sshtunnel.NewSSHTunnel(
-			tunnelConfig.UserAndHost,
-			sshtunnel.PrivateKeyFile(tunnelConfig.CertificateLocation),
-			tunnelConfig.Destination,
-			fmt.Sprintf("%d", SSH_TUNNEL_PORT),
-		)
-		tunnel.Log = log.Default()
-		tunnel.Start()
-	}()
-
+	go aws.GetAwsClient().StartBastionProxy(env)
 	go globalRequestHandler(env)
 	go localWebServer()
 
@@ -43,17 +31,8 @@ func StartProxy(env domain.Environment, certLocation string) {
 
 }
 
-func newTunnelConfiguration(env domain.Environment, certLocation string) TunnelConfiguration {
-	return TunnelConfiguration{
-		CertificateLocation: certLocation,
-		UserAndHost:         fmt.Sprintf("ec2-user@bastion.%sservices.technipfmc.com", strings.ReplaceAll(env.String()+".", "prod.", "")),
-		Destination:         "service.service:80",
-	}
-
-}
-
 func globalRequestHandler(env domain.Environment) {
-	origin, _ := url.Parse(fmt.Sprintf("http://localhost:%d", SSH_TUNNEL_PORT))
+	origin, _ := url.Parse(fmt.Sprintf("http://localhost:%d", domain.SSM_PROXY_PORT))
 	director := func(req *http.Request) {
 		host := req.Host
 		req.Header.Add("host", host)
@@ -118,7 +97,7 @@ func logRoundtrip(req *http.Request, resp *http.Response) {
 
 	reqBody, err := httputil.DumpRequest(req, shouldReadReqBody)
 	if err != nil {
-		log.Println("Failed to dump request", err)
+		log.Println("Failed to dump request "+req.RequestURI, err)
 	}
 
 	respBody, err := httputil.DumpResponse(resp, shouldReadRespBody && !isRespGzip)

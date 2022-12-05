@@ -11,6 +11,6 @@ export interface ServerLog {
   request: string;
   response: string;
   status: number;
-  requestHeaders: HttpHeaders;
-  responseHeaders: HttpHeaderResponse;
+  requestHeaders: { [index: string]: string[] };
+  responseHeaders: { [index: string]: string[] };
 }

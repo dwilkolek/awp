@@ -15,7 +15,6 @@ export class ServerlistComponent implements OnInit {
   multSelect = false;
   hosts: string[] = [];
   filteredHosts: Observable<string[]>;
-  selectedHosts: string[] = [];
 
   public readonly serverForm: FormGroup;
 
@@ -37,28 +36,22 @@ export class ServerlistComponent implements OnInit {
     this.serversService
       .getServers()
       .subscribe((servers) => (this.hosts = servers.hosts));
-    this.selectedHosts.forEach((item) =>
-      this.socketService.subscribeToLog(item)
-    );
+
     this.socketService.colors.subscribe((data) => (this.colors = data));
   }
 
   onSelectedOptionChange(event: MatListOption[]) {
     if (!!event[0].value) {
       const userSelection = event[0].value;
-      this.selectedHosts.push(userSelection);
-      if (!(userSelection in this.colors)) {
-        this.socketService.assignColor(userSelection);
-      }
       this.socketService.subscribeToLog(userSelection);
     }
   }
 
+  get selectedHosts(): string[] {
+    return Object.keys(this.colors);
+  }
+
   remove(host: string) {
-    const index = this.selectedHosts.indexOf(host);
-    if (index >= 0) {
-      this.selectedHosts.splice(index, 1);
-    }
     this.socketService.unsubscribeFromLog(host);
     this.hostsList.deselectAll();
   }

@@ -1,21 +1,18 @@
 @import "../../shared/variables"
 
-.container
-    display: flex
-    align-items: center
-    .title
-        font-weight: bold
-        color: $textSecondary
-        white-space: nowrap
-        min-width: 80px
-    .text
-        font-family: monospace
-        color: $textPrimary
-        word-break: break-all
-        line-break: anywhere
-        margin: 0
-        padding: 2px
-    .box
-        display: inline-flex
-        flex-wrap: nowrap
-        gap: 8px
+:host
+    display: inline
+.title
+    font-weight: bold
+    color: $textSecondary
+    white-space: nowrap
+    min-width: 80px
+.text
+    font-family: monospace
+    color: $textPrimary
+    word-break: break-all
+    line-break: anywhere
+    margin: 0
+    padding: 2px
+.box
+    display: inline

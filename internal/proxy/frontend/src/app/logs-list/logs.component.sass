@@ -2,3 +2,25 @@
   height: calc(100vh - 64px - 16px)
   padding: 8px
   margin: auto
+
+  .vscroll
+    height: 100%
+    max-height: calc(100vh - 400px)
+
+  .selectedLog
+    overflow: auto
+    display: flex
+    flex-direction: row
+    max-height: 300px
+    .req, .res
+      padding: 24px
+      width: 50%
+      color: #fff
+      height: 400px
+
+pre
+  white-space: pre-wrap
+  white-space: -moz-pre-wrap
+  white-space: -pre-wrap
+  white-space: -o-pre-wrap
+  word-wrap: break-word
