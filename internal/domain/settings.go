@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 )
@@ -8,6 +9,7 @@ import (
 var BasePath string = baseAwpPath()
 
 func baseAwpPath() string {
+	fmt.Println(Version)
 	if Version == "development" {
 		path, err := os.Getwd()
 		if err != nil {
