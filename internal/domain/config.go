@@ -12,7 +12,7 @@ import (
 const SSM_PROXY_PORT = 15077
 const REGION = "eu-west-1"
 const PROFILE = "awp"
-const PARAMETERS = "{\"host\":[\"retro.service\"], \"portNumber\":[\"80\"], \"localPortNumber\":[\"15077\"]}"
+const PARAMETERS = "{\"host\":[\"access-management.service\"], \"portNumber\":[\"80\"], \"localPortNumber\":[\"15077\"]}"
 const AWS_PROFILE = "[awp]\nsso_start_url = https://technipfmc.awsapps.com/start\nsso_region = eu-west-1\nsso_account_id = 835811189142\nsso_role_name = AWSSSO-DeveloperAccess\nregion = eu-west-1"
 
 var lock = &sync.Mutex{}
