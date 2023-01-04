@@ -40,13 +40,9 @@ func (awsClient *awsClient) StartBastionProxy(env domain.Environment) {
 	var selectedInstanceId string
 	for _, reservation := range result.Reservations {
 		for _, instance := range reservation.Instances {
-			if instance.KeyName != nil {
-				fmt.Printf("Instance %s: %s\n", *instance.KeyName, *instance.InstanceId)
-				if strings.HasPrefix(*instance.KeyName, env.String()) {
-					selectedInstanceId = *instance.InstanceId
-				}
-			} else {
-				fmt.Printf("Skipping %s\n", *instance.InstanceId)
+			fmt.Printf("Instance %s: %s\n", *instance.IamInstanceProfile.Arn, *instance.InstanceId)
+			if strings.Contains(*instance.IamInstanceProfile.Arn, env.String()) {
+				selectedInstanceId = *instance.InstanceId
 			}
 		}
 	}
@@ -60,6 +56,7 @@ func (awsClient *awsClient) StartBastionProxy(env domain.Environment) {
 			"--parameters", fmt.Sprintf(domain.PARAMETERS),
 		)
 		fmt.Printf("Starting proxy at port %d\n", domain.SSM_PROXY_PORT)
+		fmt.Printf("Command %s\n", cmd.Args)
 		var outb, errb bytes.Buffer
 		cmd.Stdout = &outb
 		cmd.Stderr = &errb
