@@ -1,10 +1,14 @@
 package app
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
+	"os/signal"
 	"strings"
+	"syscall"
 
 	"github.com/tfmcdigital/aws-web-proxy/internal/domain"
 	"github.com/tfmcdigital/aws-web-proxy/internal/proxy"
@@ -18,8 +22,25 @@ func StartProxy(env string) {
 	if err != nil {
 		log.Default().Fatalln(err)
 	}
-
+	go gracefulShutdown()
 	proxy.StartProxy(environment)
+
+}
+func gracefulShutdown() {
+	s := make(chan os.Signal, 1)
+	signal.Notify(s, os.Interrupt)
+	signal.Notify(s, syscall.SIGTERM)
+	go func() {
+		<-s
+		fmt.Println("Sutting down gracefully.")
+		exec.Command(
+			"lsof", "-t", "-i", fmt.Sprintf("tcp:%d", domain.SSM_PROXY_PORT), "|", "xargs", "kill",
+		).Run()
+		exec.Command(
+			"lsof", "-t", "-i", fmt.Sprintf("tcp:%d", proxy.WEB_SERVER_PORT), "|", "xargs", "kill",
+		).Run()
+		os.Exit(0)
+	}()
 }
 
 func SetupHosts() {
