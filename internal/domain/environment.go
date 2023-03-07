@@ -10,6 +10,7 @@ const (
 	DEV  Environment = "dev"
 	DEMO Environment = "demo"
 	PROD Environment = "prod"
+	LAB  Environment = "lab"
 )
 
 func (env Environment) String() string {
@@ -18,6 +19,7 @@ func (env Environment) String() string {
 
 func ParseEnvironment(s string) (e Environment, err error) {
 	environments := map[string]Environment{
+		LAB.String():  LAB,
 		DEV.String():  DEV,
 		DEMO.String(): DEMO,
 		PROD.String(): PROD,
