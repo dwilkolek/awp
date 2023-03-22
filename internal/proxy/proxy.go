@@ -44,14 +44,16 @@ func globalRequestHandler(env domain.Environment) {
 			req.URL.Host = originAwp.Host
 		} else {
 			req.URL.Host = origin.Host
-			if env != domain.PROD {
-				if domain.GetConfig().HeaderOverwrites[host] != nil {
-					for header, value := range domain.GetConfig().HeaderOverwrites[host] {
-						if strings.HasPrefix(value, "toBase64:") {
-							req.Header.Add(header, base64.StdEncoding.EncodeToString([]byte(strings.Replace(value, "toBase64:", "", 1))))
-						} else {
-							req.Header.Add(header, value)
-						}
+
+			if domain.GetConfig().HeaderOverwrites[host] != nil {
+				if env == domain.PROD {
+					log.Printf("Overriding headers for %s!!!\n", host)
+				}
+				for header, value := range domain.GetConfig().HeaderOverwrites[host] {
+					if strings.HasPrefix(value, "toBase64:") {
+						req.Header.Add(header, base64.StdEncoding.EncodeToString([]byte(strings.Replace(value, "toBase64:", "", 1))))
+					} else {
+						req.Header.Add(header, value)
 					}
 				}
 			}
